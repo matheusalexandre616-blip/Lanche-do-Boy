@@ -567,5 +567,5 @@ document.addEventListener('click',e=>{const lt=e.target.closest('[data-lt]');if(
 
 window.addEventListener('unhandledrejection',e=>{$$('button[type=submit]').forEach(b=>b.disabled=false);const m=(e.reason&&e.reason.message)||String(e.reason);['cl-err','lf-e'].forEach(i=>{const x=document.getElementById(i);if(x)x.textContent='Erro: '+m});});
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
-initData();render();
+initData();render();{const b=document.getElementById('boot');if(b)b.remove()}
 })();
