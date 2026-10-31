@@ -47,7 +47,7 @@ function orderMsg(o,intro){
   L.push(LINE,'▶️ *Dados para entrega*','',
     'Nome: '+o.customer.name,'Endereço: '+o.addr.street+', nº '+o.addr.number,'Bairro: '+o.addr.bairro+(o.addr.cep?'\nCEP: '+o.addr.cep:''));
   if(o.addr.comp)L.push('Complemento/Referência: '+o.addr.comp);
-  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','🕐 Tempo de Entrega: aprox. 40 a 55 min','',
+  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','🕐 Tempo de Entrega: aprox. '+etaRange(o.eta),'',
     LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'','▶️ *PAGAMENTO*','');
   const m=o.pay.method;
   L.push(m==='pix'?'Pagamento por Pix'+(S.settings.pix?'\nChave Pix: '+S.settings.pix:''):m==='dinheiro'?'Pagamento em dinheiro na entrega'+(o.pay.change?'\nTroco para: '+money(o.pay.change):''):'Pagamento no cartão na entrega');
@@ -179,11 +179,11 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 const S={orders:{},rows:[],settings:{open:true,pix:'',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
-const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[]}};
+const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min}};
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false}).limit(300);
-  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit()}
+  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc()}
 async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();return}
   const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
   S.drivers=(data||[]).map(d=>({id:d.user_id,name:d.name}));
@@ -208,7 +208,7 @@ async function savePhoto(id,img){S.photos[id]=img;emit();const{error}=await sb.f
 async function setSold(id){const v=!S.settings.soldOut[id];const so=Object.assign({},S.settings.soldOut);if(v)so[id]=true;else delete so[id];S.settings.soldOut=so;emit();const{error}=await sb.from('products').update({sold_out:v}).eq('id',id);if(error)dbFail(error)}
 async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error){dbFail(error);return{error}}await loadOrders();return{data}}
 function upd(){}
-let reloadT=0;function reloadSoon(){clearTimeout(reloadT);reloadT=setTimeout(()=>{loadOrders();loadCatalog();loadStaff().then(()=>{loadOrders()})},350)}
+let reloadT=0;function reloadSoon(){clearTimeout(reloadT);reloadT=setTimeout(()=>{loadOrders();loadCatalog();loadLoc();loadStaff().then(()=>{loadOrders()})},350)}
 async function refreshRole(){
   if(!S.user){setSess(null);S.drivers=[];rebuildOrders();emit();return}
   const{data}=await sb.rpc('my_role');
@@ -406,7 +406,7 @@ function openCheckout(){
         customer:{name:v('ck-name'),phone:v('ck-phone')},
         addr:{cep:v('ck-cep'),street:v('ck-street'),number:v('ck-num'),bairro:v('ck-bairro'),city:v('ck-city')||'Belo Horizonte - MG',comp:v('ck-comp')},
         pay:{method:pay,change:pay==='dinheiro'?parseFloat(v('ck-change').replace(',','.'))||0:0}};
-      sb.rpc('create_order',{p:payload}).then(async({data,error})=>{
+      btn.textContent='Calculando entrega...';geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
         if(error){btn.disabled=false;btn.textContent='Enviar pedido';dbFail(error);return}
         const o=rowToOrder(data);S.orders[o.id]=o;
         LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
@@ -422,15 +422,15 @@ function openWhere(){
   <button class="btn ghost" data-act="copy" data-t="${esc(STORE.addr)}">Copiar endereço</button></div>`);
 }
 function openTrack(){openSheet('<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Meus pedidos</h2></div><div class="bd" id="trk"></div>');trackOpen=true;renderTrack()}
-function renderTrack(){
-  const t=$('#trk');if(!t)return;
+function renderTrackBase(){
+  const t=TRK_T||$('#trk');if(!t)return;
   const my=myOrders();
   if(!my.length){t.innerHTML='<div class="empty">Você ainda não fez pedidos.</div>';return}
   const stp=['novo','preparo','pronto','rota','entregue'],lab=['Recebido','Preparando','Pronto','A caminho','Entregue'];
   t.innerHTML=my.map(o=>{const i=stp.indexOf(o.status);const can=o.status==='cancelado';
     return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="d" style="font-size:20px">Pedido #${o.code}</b><span class="pill ${can?'closed':o.status==='entregue'?'':'warn'}">${STATUS[o.status]}</span></div>
     ${can?'<p class="mini">A hamburgueria não pôde aceitar este pedido. Chame no WhatsApp da loja.</p>':`<div class="steps">${lab.map((l,k)=>`<div class="${k<=i?'on':''}">${l}</div>`).join('')}</div>`}
-    <ul style="margin:8px 0;padding-left:18px">${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}</li>`).join('')}</ul>
+    ${can?'':trackExtra(o)}<ul style="margin:8px 0;padding-left:18px">${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}</li>`).join('')}</ul>
     <div class="sum"><div><span>Entrega em ${esc(o.addr.bairro)}</span><span>${money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
     ${o.pay.method==='pix'&&!o.pixPaid&&!can?`<div style="margin-top:10px"><div class="lbl">Pague com Pix e avise a loja</div>${S.settings.pix?`<div class="copy"><span style="flex:1">${esc(S.settings.pix)}</span><button class="btn sm dark" data-act="copy" data-t="${esc(S.settings.pix)}">Copiar</button></div>`:'<div class="mini">A chave Pix será enviada pela loja no WhatsApp.</div>'}</div>`:''}
     ${o.pay.method==='pix'&&o.pixPaid?'<p class="pill" style="margin-top:10px"><i></i>Pix confirmado</p>':''}</div>`}).join('<div style="height:10px"></div>');
@@ -456,7 +456,7 @@ function renderCozinha(){
   const os=Object.values(S.orders).sort((a,b)=>a.createdAt-b.createdAt);
   const today=os.filter(o=>new Date(o.createdAt).toDateString()===new Date().toDateString()&&o.status!=='cancelado');
   const rev=today.reduce((a,o)=>a+o.total,0);
-  $('#stats').innerHTML=`<div class="stat"><b>${os.filter(o=>o.status==='novo').length}</b><span>Novos pedidos</span></div><div class="stat"><b>${os.filter(o=>o.status==='preparo').length}</b><span>Em preparo</span></div><div class="stat"><b>${os.filter(o=>o.status==='rota').length}</b><span>Em rota</span></div><div class="stat"><b>${money(rev)}</b><span>Vendas de hoje (${today.length})</span></div>
+  $('#stats').innerHTML=`<div class="stat"><b>${os.filter(o=>o.status==='novo').length}</b><span>Novos pedidos</span></div><div class="stat"><b>${os.filter(o=>o.status==='preparo').length}</b><span>Em preparo</span></div><div class="stat"><b>${os.filter(o=>o.status==='rota').length}</b><span>Em rota</span></div><div class="stat"><b>${money(rev)}</b><span>Vendas de hoje (${today.length})</span></div><div class="stat"><b>${etaInfo?etaInfo.prep+' min':'–'}</b><span>Preparo estimado · fila ${etaInfo?etaInfo.queue:0}</span></div>
    <div class="stat" style="display:flex;flex-direction:column;gap:8px;justify-content:center"><span class="pill ${S.settings.open?'':'closed'}" style="align-self:flex-start"><i></i>${S.settings.open?'Loja aberta':'Loja fechada'}</span><button class="btn sm dark" data-act="toggleOpen">${S.settings.open?'Fechar a loja':'Abrir a loja'}</button></div>`;
   const live=os.filter(o=>o.status!=='entregue'&&o.status!=='cancelado');
   let h='';
@@ -566,6 +566,54 @@ function renderLogin(){
 document.addEventListener('click',e=>{const lt=e.target.closest('[data-lt]');if(lt)e.stopImmediatePropagation()},true);
 
 window.addEventListener('unhandledrejection',e=>{$$('button[type=submit]').forEach(b=>b.disabled=false);const m=(e.reason&&e.reason.message)||String(e.reason);['cl-err','lf-e'].forEach(i=>{const x=document.getElementById(i);if(x)x.textContent='Erro: '+m});});
+/* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
+let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
+S.loc=S.loc||{};const maps={};
+function etaRange(m){if(!m)return'40 a 55 min';const lo=Math.max(5,Math.round(m*.85/5)*5);let hi=Math.round(m*1.2/5)*5;if(hi<=lo)hi=lo+5;return lo+' a '+hi+' min'}
+const kmBetween=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);return 2*R*Math.asin(Math.min(1,Math.sqrt(Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2)))};
+async function geocode(q){try{const c=new AbortController();const t=setTimeout(()=>c.abort(),4500);const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q),{signal:c.signal,headers:{'Accept-Language':'pt-BR'}});clearTimeout(t);const j=await r.json();if(j&&j[0])return{lat:+j[0].lat,lng:+j[0].lon}}catch(e){}return null}
+async function loadEta(){try{const{data}=await sb.rpc('calc_eta',{dist:4});if(data){etaInfo=data;const e=$('#etaTxt');if(e)e.textContent=etaRange(data.total);if(isLoja())emit()}}catch(e){}}
+async function loadStorePos(){try{const{data}=await sb.from('store_settings').select('store_lat,store_lng').eq('id',1).maybeSingle();if(data&&data.store_lat!=null){storePos={lat:data.store_lat,lng:data.store_lng};LS.set('lb_store',storePos)}}catch(e){}
+  if(isLoja()&&!LS.get('lb_store_geo',false)){const g=await geocode(STORE.addr.replace(', Brasil',''));if(g){await sb.from('store_settings').update({store_lat:g.lat,store_lng:g.lng}).eq('id',1);storePos=g;LS.set('lb_store',g)}LS.set('lb_store_geo',true)}}
+async function loadLoc(){if(!S.user)return;try{const{data}=await sb.from('driver_locations').select('*');const m={};(data||[]).forEach(d=>{m[d.driver]={lat:d.lat,lng:d.lng,t:Date.parse(d.updated_at)}});S.loc=m;if(trackOpen)updateTrackLive()}catch(e){}}
+let leafP=null;function loadLeaflet(){if(window.L)return Promise.resolve();return leafP||(leafP=new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet.js';sc.onload=res;sc.onerror=()=>{leafP=null;rej()};document.head.appendChild(sc)}))}
+const ACTIVE=['novo','preparo','pronto','rota'];
+function trackExtra(o){if(!ACTIVE.includes(o.status))return'';
+  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
+function renderTrack(){const real=$('#trk');if(!real)return;const tmp=document.createElement('div');TRK_T=tmp;try{renderTrackBase()}finally{TRK_T=null}
+  if(real.dataset.sig!==tmp.innerHTML){Object.keys(maps).forEach(k=>{try{maps[k].map.remove()}catch(e){}delete maps[k]});real.innerHTML=tmp.innerHTML;real.dataset.sig=tmp.innerHTML}
+  drawMaps()}
+async function drawMaps(){const els=$$('.trkmap');if(!els.length){updateTrackLive();return}
+  try{await loadLeaflet()}catch(e){els.forEach(x=>{x.textContent='Não foi possível carregar o mapa agora.'});updateTrackLive();return}
+  Object.keys(maps).forEach(k=>{if(!document.body.contains(maps[k].el)){try{maps[k].map.remove()}catch(e){}delete maps[k]}});
+  els.forEach(el=>{const id=el.id.slice(4),o=S.orders[id];if(!o||maps[id])return;
+    const map=L.map(el,{attributionControl:true}).setView([o.dlat,o.dlng],14);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    const ic=(e,c)=>L.divIcon({className:'',html:`<div class="mk" style="background:${c}">${e}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+    L.marker([storePos.lat,storePos.lng],{icon:ic('🍔','#C8221A')}).addTo(map);L.marker([o.dlat,o.dlng],{icon:ic('🏠','#177A42')}).addTo(map);
+    map.fitBounds([[storePos.lat,storePos.lng],[o.dlat,o.dlng]],{padding:[34,34],maxZoom:16});
+    maps[id]={map,el,drv:null,ic};setTimeout(()=>map.invalidateSize(),200)});
+  updateTrackLive()}
+function updateTrackLive(){
+  myOrders().filter(o=>ACTIVE.includes(o.status)).forEach(o=>{
+    const e1=document.getElementById('eta-'+o.id);if(!e1)return;
+    const loc=o.drvId&&S.loc[o.drvId],dest=o.dlat!=null?{lat:o.dlat,lng:o.dlng}:null;let mins=null,st='';
+    if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você.`}
+    else if(o.eta){mins=Math.max(5,o.eta-(Date.now()-o.createdAt)/60000)}
+    if(!st)st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Pedido pronto, aguardando o motoboy sair.',rota:'O motoboy saiu para entrega. Localização em instantes.'}[o.status]||'';
+    const m=mins==null?null:Math.max(3,Math.round(mins));
+    e1.textContent=m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':'Previsão: ~')+m+' min';
+    const e2=document.getElementById('eta2-'+o.id);if(e2)e2.textContent=m==null?'':'por volta de '+hhmm(Date.now()+m*60000);
+    const e3=document.getElementById('trkst-'+o.id);if(e3)e3.textContent=st;
+    const mp=maps[o.id];if(mp&&mp.map){
+      if(o.status==='rota'&&loc){if(!mp.drv){mp.drv=L.marker([loc.lat,loc.lng],{icon:mp.ic('🛵','#2457B8'),zIndexOffset:900}).addTo(mp.map);if(dest)mp.map.fitBounds([[loc.lat,loc.lng],[dest.lat,dest.lng],[storePos.lat,storePos.lng]],{padding:[34,34],maxZoom:16})}else mp.drv.setLatLng([loc.lat,loc.lng])}
+      else if(mp.drv){mp.map.removeLayer(mp.drv);mp.drv=null}}})}
+setInterval(()=>{if(trackOpen&&S.user)loadLoc()},8000);setInterval(()=>{updateTrackLive()},30000);setInterval(loadEta,60000);
+let watchId=null,lastSent=0;
+function syncGeo(){const need=!!(sess&&(isMoto()||isLoja())&&S.user&&Object.values(S.orders).some(o=>o.status==='rota'&&o.drvId===S.user.id));
+  if(need&&watchId==null&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=Date.now();if(n-lastSent<8000)return;lastSent=n;sb.rpc('post_location',{la:p.coords.latitude,lo:p.coords.longitude})},()=>{toast('Ative a localização do celular para o cliente acompanhar a entrega')},{enableHighAccuracy:true,maximumAge:5000,timeout:20000})}
+  else if(!need&&watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
+
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
-initData();render();{const b=document.getElementById('boot');if(b)b.remove()}
+initData().then(()=>{loadEta();loadStorePos()});render();{const b=document.getElementById('boot');if(b)b.remove()}
 })();
