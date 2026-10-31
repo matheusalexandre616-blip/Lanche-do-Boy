@@ -500,6 +500,13 @@ setInterval(()=>{if(cur()==='cozinha'&&!document.hidden&&!$('#layer').children.l
 (function(){const l=$('.logo');l.textContent='';l.style.background=`url(${LOGO_SM}) center/cover`;l.style.boxShadow='none'})();
 /* ------------------------------ login (Supabase Auth) ------------------------------ */
 const BACKSVG='<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
+async function signUpNoMail(em,pw,meta){
+  try{const rs=await fetch(SB_URL+'/functions/v1/signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({email:em,password:pw,name:meta.name,phone:meta.phone})});
+    const j=await rs.json().catch(()=>({}));
+    if(!rs.ok)return{error:{message:j.error||'Não foi possível criar a conta.'}};
+    return sb.auth.signInWithPassword({email:em,password:pw})
+  }catch(x){return sb.auth.signUp({email:em,password:pw,options:{data:meta}})}
+}
 let authMode='in';
 function openLogin(next){
   const up=authMode==='up',c=LS.get('lb_cust',{});
@@ -520,7 +527,7 @@ function openLogin(next){
       btn.disabled=true;let r;
       if(up){const n=$('#cl-name',sh).value.trim(),p=$('#cl-phone',sh).value.trim();
         if(n.length<2||digits(p).length<10){err.textContent='Informe seu nome e o WhatsApp com DDD.';btn.disabled=false;return}
-        r=await sb.auth.signUp({email:em,password:pw,options:{data:{name:n,phone:p}}});
+        r=await signUpNoMail(em,pw,{name:n,phone:p});
         if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.';btn.disabled=false;return}}
       else r=await sb.auth.signInWithPassword({email:em,password:pw});
       if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':r.error.message;btn.disabled=false;return}
@@ -544,7 +551,7 @@ function renderLogin(){
   $('#lf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#lf-e'),btn=$('#lf button[type=submit]'),em=$('#lf-m').value.trim(),pw=$('#lf-p').value;err.textContent='';err.style.color='';
     if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){err.textContent='Informe e-mail e senha (mínimo 6 caracteres).';return}
     btn.disabled=true;let r;
-    if(up){r=await sb.auth.signUp({email:em,password:pw,options:{data:{name:em.split('@')[0],phone:''}}});
+    if(up){r=await signUpNoMail(em,pw,{name:em.split('@')[0],phone:''});
       if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao e-mail e depois entre.';btn.disabled=false;return}}
     else r=await sb.auth.signInWithPassword({email:em,password:pw});
     if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':r.error.message;btn.disabled=false;return}
