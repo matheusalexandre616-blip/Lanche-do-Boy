@@ -225,8 +225,17 @@ async function initData(){
   emit();
 }
 async function renderTeam(){const el=$('#teamList');if(!el||!isLoja())return;
-  const[a,b]=await Promise.all([sb.from('staff').select('name,role,active').eq('role','motoboy'),sb.from('staff_invites').select('*')]);
-  el.innerHTML=(a.data||[]).map(d=>`<div class="mrow" style="grid-template-columns:1fr auto"><b>${esc(d.name)}</b><span class="pill">ativo</span></div>`).join('')+(b.data||[]).map(d=>`<div class="mrow" style="grid-template-columns:1fr auto"><div><b>${esc(d.name)}</b><span class="mini">${esc(d.email)}</span></div><span class="pill warn">convite pendente</span></div>`).join('')||'<div class="mini">Nenhum motoboy ainda.</div>'}
+  const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
+  const rows=data||[];
+  el.innerHTML=rows.length?rows.map(d=>`<div class="mrow" style="grid-template-columns:1fr;gap:8px" data-uid="${d.user_id}">
+    <div style="display:flex;gap:8px;align-items:center"><input class="tm-name" value="${esc(d.name)}" aria-label="Nome do motoboy" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm" data-tm="rename">Salvar nome</button></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="tm-pin" inputmode="numeric" maxlength="6" placeholder="Novo PIN" aria-label="Novo PIN" style="width:120px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm ghost" data-tm="pin">Trocar PIN</button><button class="btn sm ghost" data-tm="remove" style="margin-left:auto;color:var(--crit)">Remover</button></div></div>`).join(''):'<div class="mini">Nenhum motoboy ainda.</div>';
+  $$('[data-tm]',el).forEach(b=>b.addEventListener('click',async()=>{const row=b.closest('[data-uid]'),uid=row.dataset.uid,k=b.dataset.tm;let r;
+    if(k==='rename'){const nm=$('.tm-name',row).value.trim();if(nm.length<2){toast('Informe o nome');return}r=await sb.rpc('rename_staff',{uid,nm})}
+    else if(k==='pin'){const pin=$('.tm-pin',row).value.trim();if(!/^\d{4,6}$/.test(pin)){toast('O PIN deve ter de 4 a 6 números');return}r=await sb.rpc('set_motoboy_pin',{uid,pin})}
+    else{if(!b.dataset.ok){b.dataset.ok=1;b.textContent='Toque de novo para remover';return}r=await sb.rpc('remove_motoboy',{uid})}
+    if(r.error){dbFail(r.error);return}
+    toast(k==='rename'?'Nome atualizado':k==='pin'?'PIN trocado':'Motoboy removido');await loadStaff();renderTeam();emit()}))}
 
 /* ------------------------------ rota ------------------------------ */
 function hav(a,b){const t=x=>x*Math.PI/180,dl=t(b.lng-a.lng),dp=t(b.lat-a.lat),h=Math.sin(dp/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dl/2)**2;return 2*6371*Math.asin(Math.sqrt(h))}
@@ -469,10 +478,10 @@ function renderCozinha(){
 }
 function syncSettings(){const m={'s-pix':S.settings.pix,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}}
 ['s-pix','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else S.settings.wa=v;saveSettings()}));
-$('#invF').addEventListener('submit',async e=>{e.preventDefault();const n=$('#inv-name').value.trim(),m=$('#inv-mail').value.trim().toLowerCase();
-  if(n.length<2||!/^\S+@\S+\.\S+$/.test(m)){toast('Informe nome e e-mail válidos');return}
-  const{error}=await sb.from('staff_invites').upsert({email:m,role:'motoboy',name:n});if(error){dbFail(error);return}
-  $('#inv-name').value='';$('#inv-mail').value='';toast('Convite criado. Peça para ele criar a conta com esse e-mail.');renderTeam()});
+$('#invF').addEventListener('submit',async e=>{e.preventDefault();const nm=$('#inv-name').value.trim(),pin=$('#inv-pin').value.trim();
+  if(nm.length<2||!/^\d{4,6}$/.test(pin)){toast('Informe o nome e um PIN de 4 a 6 números');return}
+  const{error}=await sb.rpc('add_motoboy',{nm,pin});if(error){dbFail(error);return}
+  $('#inv-name').value='';$('#inv-pin').value='';toast('Motoboy cadastrado. Ele entra escolhendo o nome e digitando o PIN.');await loadStaff();renderTeam();emit()});
 function bindDrv(){const s=$('#drvSel');if(s)s.addEventListener('change',e=>{drv=+e.target.value;LS.set('lb_driver',drv);render()})}
 
 /* ------------------------------ eventos ------------------------------ */
@@ -534,11 +543,13 @@ function openLogin(next){
       applyUser(r.data.user);closeSheet();toast('Olá, '+cust.name.split(' ')[0]+'!');render();if(next==='checkout')openCheckout()});
     const f=$('#cl-name',sh)||$('#cl-mail',sh);f.focus({preventScroll:true})});
 }
-let staffMode='in';
+let staffMode='in',staffWho='loja',motoList=null;
 function renderLogin(){
+  if(staffWho==='moto'){renderMotoLogin();return}
   const up=staffMode==='up';
   $('#login').innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
    <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Área restrita à hamburgueria e aos motoboys. Clientes fazem pedidos na tela inicial.</div></div>
+   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-who="loja" aria-selected="true">Hamburgueria</button><button type="button" data-who="moto" aria-selected="false">Motoboy</button></div>
    ${S.user&&!sess?`<div class="card" style="background:var(--warn-soft);border-color:transparent"><b>${esc(S.user.email)}</b><div class="mini">Esse e-mail ainda não tem acesso de equipe. Peça à hamburgueria para convidar este e-mail.</div><button class="btn sm ghost" data-act="clogout" style="margin-top:8px">Sair desta conta</button></div>`:''}
    <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-sm="in" aria-selected="${!up}">Entrar</button><button type="button" data-sm="up" aria-selected="${up}">Criar conta</button></div>
    <form id="lf" class="f" style="gap:12px" novalidate>
@@ -547,7 +558,7 @@ function renderLogin(){
     <button class="btn" type="submit">${up?'Criar conta de equipe':'Entrar'}</button>
     <button class="btn ghost" type="button" data-go="cliente">Voltar ao cardápio</button>
    </form></div>`;
-  $$('[data-sm]').forEach(b=>b.addEventListener('click',()=>{staffMode=b.dataset.sm;renderLogin()}));
+  $$('[data-sm]').forEach(b=>b.addEventListener('click',()=>{staffMode=b.dataset.sm;renderLogin()}));$$('[data-who]').forEach(b=>b.addEventListener('click',()=>{staffWho=b.dataset.who;renderLogin()}));
   $('#lf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#lf-e'),btn=$('#lf button[type=submit]'),em=$('#lf-m').value.trim(),pw=$('#lf-p').value;err.textContent='';err.style.color='';
     if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){err.textContent='Informe e-mail e senha (mínimo 6 caracteres).';return}
     btn.disabled=true;let r;
@@ -562,6 +573,30 @@ function renderLogin(){
     const go=wanted&&allowed(wanted)?wanted:(isLoja()?'cozinha':'motoboy');wanted=null;
     if(location.hash==='#'+go)render();else location.hash='#'+go});
   const lp=$('#lf-m');if(lp)lp.focus({preventScroll:true});
+}
+async function renderMotoLogin(){
+  const box=$('#login');
+  box.innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
+   <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Motoboy: escolha seu nome e digite o PIN que a hamburgueria te passou.</div></div>
+   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-who="loja" aria-selected="false">Hamburgueria</button><button type="button" data-who="moto" aria-selected="true">Motoboy</button></div>
+   <form id="mf" class="f" style="gap:12px" novalidate>
+    <div class="f"><label for="mf-n">Seu nome</label><select id="mf-n"><option value="">Carregando…</option></select></div>
+    <div class="f"><label for="mf-p">PIN</label><input id="mf-p" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4 a 6 números"><div class="err" id="mf-e" role="alert"></div></div>
+    <button class="btn" type="submit">Entrar</button>
+    <button class="btn ghost" type="button" data-go="cliente">Voltar ao cardápio</button>
+   </form></div>`;
+  $$('[data-who]',box).forEach(b=>b.addEventListener('click',()=>{staffWho=b.dataset.who;renderLogin()}));
+  const sel=$('#mf-n');
+  if(!motoList){const{data,error}=await sb.rpc('motoboy_list');motoList=error?[]:(data||[])}
+  sel.innerHTML=motoList.length?'<option value="">Escolha seu nome</option>'+motoList.map(m=>`<option value="${esc(m.slot)}">${esc(m.name)}</option>`).join(''):'<option value="">Nenhum motoboy cadastrado</option>';
+  $('#mf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#mf-e'),btn=$('#mf button[type=submit]'),slot=sel.value,pin=$('#mf-p').value.trim();err.textContent='';
+    if(!slot){err.textContent='Escolha seu nome.';return}
+    if(!/^\d{4,6}$/.test(pin)){err.textContent='Digite o PIN (4 a 6 números).';return}
+    btn.disabled=true;const r=await sb.auth.signInWithPassword({email:slot+'@lanchesdoboy.com',password:'boy-'+pin});
+    if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'PIN incorreto.':r.error.message;btn.disabled=false;return}
+    applyUser(r.data.user);await refreshRole();
+    if(!isMoto()&&!isLoja()){err.textContent='Este motoboy não está ativo. Fale com a hamburgueria.';btn.disabled=false;return}
+    if(location.hash==='#motoboy')render();else location.hash='#motoboy'});
 }
 document.addEventListener('click',e=>{const lt=e.target.closest('[data-lt]');if(lt)e.stopImmediatePropagation()},true);
 

@@ -274,9 +274,9 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       <div class="mini">O endereço do cliente vem do CEP (consulta ViaCEP, base dos Correios). A taxa padrão vale para qualquer bairro; os bairros já cadastrados no código têm taxa própria.</div>
     </div></details>
     <details class="panel"><summary>Equipe e motoboys</summary><div class="in">
-      <p class="mini" style="margin:0">Cada motoboy cria a própria conta em "Acesso da equipe" usando o e-mail convidado aqui. Depois você já pode destinar entregas a ele.</p>
+      <p class="mini" style="margin:0">O motoboy não precisa se cadastrar: ele entra em "Acesso da equipe → Motoboy", escolhe o nome e digita o PIN. Aqui você muda o nome, troca o PIN ou remove.</p>
       <div id="teamList"></div>
-      <form id="invF" class="g2" novalidate><div class="f"><label for="inv-name">Nome do motoboy</label><input id="inv-name"></div><div class="f"><label for="inv-mail">E-mail do motoboy</label><input id="inv-mail" type="email" inputmode="email"></div><div class="w"><button class="btn sm" type="submit">Convidar motoboy</button></div></form>
+      <form id="invF" class="g2" novalidate><div class="f"><label for="inv-name">Nome do motoboy</label><input id="inv-name" maxlength="40"></div><div class="f"><label for="inv-pin">PIN de acesso (4 a 6 números)</label><input id="inv-pin" inputmode="numeric" maxlength="6"></div><div class="w"><button class="btn sm" type="submit">Adicionar motoboy</button></div></form>
     </div></details>
     <input type="file" id="photoIn" accept="image/*" hidden>
   </section>
