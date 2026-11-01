@@ -240,7 +240,7 @@ async function renderTeam(){const el=$('#teamList');if(!el||!isLoja())return;
 /* ------------------------------ rota ------------------------------ */
 function hav(a,b){const t=x=>x*Math.PI/180,dl=t(b.lng-a.lng),dp=t(b.lat-a.lat),h=Math.sin(dp/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dl/2)**2;return 2*6371*Math.asin(Math.sqrt(h))}
 function hash(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return h}
-function ptOf(o){const b=BM[o.addr.bairro]||BAIRROS[0],h=hash(o.addr.street+o.addr.number);return{lat:b.lat+((h%1000)/1000-.5)*.006,lng:b.lng+(((h>>10)%1000)/1000-.5)*.006}}
+function ptOf(o){if(o.dlat!=null)return{lat:o.dlat,lng:o.dlng};const b=BM[o.addr.bairro]||BAIRROS[0],h=hash(o.addr.street+o.addr.number);return{lat:b.lat+((h%1000)/1000-.5)*.006,lng:b.lng+(((h>>10)%1000)/1000-.5)*.006}}
 function planRoute(orders){
   const st=orders.map(o=>({o,pt:ptOf(o)}));let rem=st.slice(),path=[],cur=STORE;
   while(rem.length){rem.sort((a,b)=>hav(cur,a.pt)-hav(cur,b.pt));const n=rem.shift();path.push(n);cur=n.pt}
@@ -601,6 +601,42 @@ async function renderMotoLogin(){
 document.addEventListener('click',e=>{const lt=e.target.closest('[data-lt]');if(lt)e.stopImmediatePropagation()},true);
 
 window.addEventListener('unhandledrejection',e=>{$$('button[type=submit]').forEach(b=>b.disabled=false);const m=(e.reason&&e.reason.message)||String(e.reason);['cl-err','lf-e'].forEach(i=>{const x=document.getElementById(i);if(x)x.textContent='Erro: '+m});});
+/* foto do produto */
+let photoFor=null;
+$('#photoIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||!photoFor)return;
+  try{const url=URL.createObjectURL(f),img=new Image();await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src=url});
+    const s=Math.min(1,560/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    await savePhoto(photoFor,c.toDataURL('image/jpeg',.78));toast('Foto atualizada')}catch(err){toast('Não foi possível ler essa imagem')}});
+
+/* ------------------------------ motoboy ------------------------------ */
+function renderMoto(){
+  if(isMoto())drv=sess.drv;
+  const dn=S.settings.drivers;if(drv==null||drv>=dn.length)drv=0;
+  const mine=Object.values(S.orders).filter(o=>o.driver===drv&&(o.status==='pronto'||o.status==='rota'));
+  const plan=planRoute(mine),legs=mapsLegs(plan.stops),waiting=mine.filter(o=>o.status==='pronto').length;
+  let h=`<div class="card" style="margin-top:6px;display:grid;gap:12px">${isLoja()?`<div class="f"><label for="drvSel">Vendo a tela do motoboy</label><select id="drvSel">${dn.map((n,i)=>`<option value="${i}" ${i===drv?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`:`<div><span class="mini">Olá,</span> <b>${esc(dn[drv])}</b></div>`}
+   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b class="d" style="font-size:26px">${mine.length} ${mine.length===1?'entrega':'entregas'}</b><div class="mini">${mine.length?`Rota de ${plan.km.toFixed(1).replace('.',',')} km · cerca de ${plan.min} min`:'Aguardando a hamburgueria destinar pedidos'}</div></div></div>
+   ${mine.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${waiting?`<button class="btn" data-act="start" style="flex:1">Sair para entrega (${waiting})</button>`:''}${legs.map((u,i)=>`<a class="btn ${waiting?'ghost':''}" style="flex:1" href="${u}" target="_blank" rel="noopener">Abrir rota no Google Maps${legs.length>1?' · trecho '+(i+1):''}</a>`).join('')}</div>`:''}</div>`;
+  if(!mine.length){h+=`<div class="empty" style="margin-top:12px">Nenhuma entrega na fila. Quando a hamburgueria destinar um pedido para você, ele aparece aqui com a rota.</div>`;$('#moto').innerHTML=h;bindDrv();return}
+  /* mapa esquemático */
+  const pts=[{lat:STORE.lat,lng:STORE.lng}].concat(plan.stops.map(s=>s.pt));const la=pts.map(p=>p.lat),lo=pts.map(p=>p.lng);
+  const mnA=Math.min(...la),mxA=Math.max(...la),mnO=Math.min(...lo),mxO=Math.max(...lo),W=400,Hh=230,pad=34;
+  const X=p=>pad+((p.lng-mnO)/((mxO-mnO)||1))*(W-2*pad),Y=p=>pad+((mxA-p.lat)/((mxA-mnA)||1))*(Hh-2*pad);
+  let svg=`<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Mapa esquemático da rota">`;
+  for(let i=1;i<8;i++)svg+=`<path d="M0 ${i*Hh/8}H${W}" stroke="var(--line)" stroke-width="1"/><path d="M${i*W/8} 0V${Hh}" stroke="var(--line)" stroke-width="1"/>`;
+  const line=[pts[0]].concat(plan.stops.map(s=>s.pt)).map((p,i)=>(i?'L':'M')+X(p).toFixed(1)+' '+Y(p).toFixed(1)).join('');
+  svg+=`<path d="${line}" fill="none" stroke="var(--brand)" stroke-width="3.5" stroke-dasharray="2 7" stroke-linecap="round"/>`;
+  svg+=`<g transform="translate(${X(pts[0]).toFixed(1)} ${Y(pts[0]).toFixed(1)})"><circle r="15" fill="var(--ink)"/><text y="5" text-anchor="middle" font-size="14" fill="var(--bg)" font-family="Anton,Impact,sans-serif">LB</text></g>`;
+  plan.stops.forEach((s,i)=>{svg+=`<g transform="translate(${X(s.pt).toFixed(1)} ${Y(s.pt).toFixed(1)})"><circle r="14" fill="${s.o.status==='rota'?'var(--brand)':'var(--ink)'}" stroke="var(--surface)" stroke-width="3"/><text y="5.5" text-anchor="middle" font-size="15" fill="#fff" font-family="Anton,Impact,sans-serif">${i+1}</text></g>`});
+  svg+='</svg>';
+  h+=`<div class="mapbox" style="margin-top:12px">${svg}</div><p class="mini" style="margin:6px 2px 0">Ordem calculada pela menor distância entre os bairros. O desenho é esquemático. Para navegar, use os botões do Google Maps.</p>`;
+  h+=plan.stops.map((s,i)=>{const o=s.o;const pay=o.pay.method==='pix'?(o.pixPaid?'Pix já pago, não cobrar':'Pix pendente, confirme com a loja antes de entregar'):o.pay.method==='dinheiro'?`Cobrar ${money(o.total)} em dinheiro${o.pay.change?' · troco para '+money(o.pay.change)+' (devolver '+money(Math.max(0,o.pay.change-o.total))+')':''}`:`Cobrar ${money(o.total)} na máquina de cartão`;
+    return `<article class="stop"><div class="n">${i+1}</div><div style="min-width:0"><h3>${esc(o.customer.name)} <span class="mini">#${o.code}</span></h3><div>${esc(o.addr.street)}, ${esc(o.addr.number)} · ${esc(o.addr.bairro)}</div>${o.addr.comp?`<div class="mini">${esc(o.addr.comp)}</div>`:''}
+     <div class="mini" style="margin-top:4px">${o.items.map(it=>it.qty+'× '+esc(it.name)).join(', ')} · ${s.km.toFixed(1).replace('.',',')} km do trecho anterior</div><div class="pill ${o.pay.method==='pix'&&o.pixPaid?'':'warn'}" style="margin-top:8px;white-space:normal">${pay}</div>
+     <div class="acts"><a class="btn sm" href="${navLink(o)}" target="_blank" rel="noopener">Navegar</a><a class="btn sm ghost" href="${waLink(o.customer.phone,'Olá, '+o.customer.name+'! Aqui é o motoboy do Lanches do Boy, estou a caminho com o seu pedido #'+o.code+'.')}" target="_blank" rel="noopener">WhatsApp</a><button class="btn sm ghost" data-act="copy" data-t="${esc(addrText(o))}">Copiar endereço</button>${o.status==='rota'?`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Entregue</button>`:''}</div></div></article>`}).join('');
+  $('#moto').innerHTML=h;bindDrv();
+}
+
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
 S.loc=S.loc||{};const maps={};
@@ -608,7 +644,7 @@ function etaRange(m){if(!m)return'40 a 55 min';const lo=Math.max(5,Math.round(m*
 const kmBetween=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);return 2*R*Math.asin(Math.min(1,Math.sqrt(Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2)))};
 async function geocode(q){try{const c=new AbortController();const t=setTimeout(()=>c.abort(),4500);const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q),{signal:c.signal,headers:{'Accept-Language':'pt-BR'}});clearTimeout(t);const j=await r.json();if(j&&j[0])return{lat:+j[0].lat,lng:+j[0].lon}}catch(e){}return null}
 async function loadEta(){try{const{data}=await sb.rpc('calc_eta',{dist:4});if(data){etaInfo=data;const e=$('#etaTxt');if(e)e.textContent=etaRange(data.total);if(isLoja())emit()}}catch(e){}}
-async function loadStorePos(){try{const{data}=await sb.from('store_settings').select('store_lat,store_lng').eq('id',1).maybeSingle();if(data&&data.store_lat!=null){storePos={lat:data.store_lat,lng:data.store_lng};LS.set('lb_store',storePos)}}catch(e){}
+async function loadStorePos(){try{const{data}=await sb.from('store_settings').select('store_lat,store_lng').eq('id',1).maybeSingle();if(data&&data.store_lat!=null){storePos={lat:data.store_lat,lng:data.store_lng};STORE.lat=storePos.lat;STORE.lng=storePos.lng;LS.set('lb_store',storePos)}}catch(e){}
   if(isLoja()&&!LS.get('lb_store_geo',false)){const g=await geocode(STORE.addr.replace(', Brasil',''));if(g){await sb.from('store_settings').update({store_lat:g.lat,store_lng:g.lng}).eq('id',1);storePos=g;LS.set('lb_store',g)}LS.set('lb_store_geo',true)}}
 async function loadLoc(){if(!S.user)return;try{const{data}=await sb.from('driver_locations').select('*');const m={};(data||[]).forEach(d=>{m[d.driver]={lat:d.lat,lng:d.lng,t:Date.parse(d.updated_at)}});S.loc=m;if(trackOpen)updateTrackLive()}catch(e){}}
 let leafP=null;function loadLeaflet(){if(window.L)return Promise.resolve();return leafP||(leafP=new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet.js';sc.onload=res;sc.onerror=()=>{leafP=null;rej()};document.head.appendChild(sc)}))}
