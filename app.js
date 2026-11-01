@@ -205,6 +205,10 @@ async function saveOrder(){}
 async function removeOrder(){}
 async function saveSettings(){emit();const{error}=await sb.from('store_settings').update({open:S.settings.open,pix:S.settings.pix,wa:S.settings.wa,fee_default:S.settings.feeDefault}).eq('id',1);if(error)dbFail(error)}
 async function savePhoto(id,img){S.photos[id]=img;emit();const{error}=await sb.from('photos').upsert({product_id:id,data:img});if(error)dbFail(error)}
+async function savePrice(id){const inp=$('#pr-'+id);if(!inp)return;const v=Math.round(parseFloat(inp.value.replace(/\./g,'').replace(',','.'))*100)/100;
+  if(!(v>0&&v<1000)){toast('Preço inválido. Use por exemplo 22,90');return}
+  const{error}=await sb.from('products').update({price:v}).eq('id',id);if(error){dbFail(error);return}
+  if(P[id])P[id].price=v;inp.blur();toast('Preço de '+(P[id]?P[id].name:'item')+' atualizado para '+money(v));emit()}
 async function setSold(id){const v=!S.settings.soldOut[id];const so=Object.assign({},S.settings.soldOut);if(v)so[id]=true;else delete so[id];S.settings.soldOut=so;emit();const{error}=await sb.from('products').update({sold_out:v}).eq('id',id);if(error)dbFail(error)}
 async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error){dbFail(error);return{error}}await loadOrders();return{data}}
 function upd(){}
@@ -225,17 +229,17 @@ async function initData(){
   emit();
 }
 async function renderTeam(){const el=$('#teamList');if(!el||!isLoja())return;
-  const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
-  const rows=data||[];
+  const[{data},lg]=await Promise.all([sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at'),sb.rpc('staff_logins')]);
+  const rows=data||[],LG={};(lg.data||[]).forEach(x=>LG[x.user_id]=x.login);
   el.innerHTML=rows.length?rows.map(d=>`<div class="mrow" style="grid-template-columns:1fr;gap:8px" data-uid="${d.user_id}">
-    <div style="display:flex;gap:8px;align-items:center"><input class="tm-name" value="${esc(d.name)}" aria-label="Nome do motoboy" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm" data-tm="rename">Salvar nome</button></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="tm-pin" inputmode="numeric" maxlength="6" placeholder="Novo PIN" aria-label="Novo PIN" style="width:120px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm ghost" data-tm="pin">Trocar PIN</button><button class="btn sm ghost" data-tm="remove" style="margin-left:auto;color:var(--crit)">Remover</button></div></div>`).join(''):'<div class="mini">Nenhum motoboy ainda.</div>';
+    <div class="mini">Login: <b>${esc(LG[d.user_id]||'—')}</b></div><div style="display:flex;gap:8px;align-items:center"><input class="tm-name" value="${esc(d.name)}" aria-label="Nome do motoboy" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm" data-tm="rename">Salvar nome</button></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="tm-pin" inputmode="numeric" maxlength="6" placeholder="Nova senha" aria-label="Nova senha (4 a 6 números)" style="width:120px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:9px;font:inherit"><button class="btn sm ghost" data-tm="pin">Trocar senha</button><button class="btn sm ghost" data-tm="remove" style="margin-left:auto;color:var(--crit)">Remover</button></div></div>`).join(''):'<div class="mini">Nenhum motoboy ainda.</div>';
   $$('[data-tm]',el).forEach(b=>b.addEventListener('click',async()=>{const row=b.closest('[data-uid]'),uid=row.dataset.uid,k=b.dataset.tm;let r;
     if(k==='rename'){const nm=$('.tm-name',row).value.trim();if(nm.length<2){toast('Informe o nome');return}r=await sb.rpc('rename_staff',{uid,nm})}
-    else if(k==='pin'){const pin=$('.tm-pin',row).value.trim();if(!/^\d{4,6}$/.test(pin)){toast('O PIN deve ter de 4 a 6 números');return}r=await sb.rpc('set_motoboy_pin',{uid,pin})}
+    else if(k==='pin'){const pin=$('.tm-pin',row).value.trim();if(!/^\d{4,6}$/.test(pin)){toast('A senha deve ter de 4 a 6 números');return}r=await sb.rpc('set_motoboy_pin',{uid,pin})}
     else{if(!b.dataset.ok){b.dataset.ok=1;b.textContent='Toque de novo para remover';return}r=await sb.rpc('remove_motoboy',{uid})}
     if(r.error){dbFail(r.error);return}
-    toast(k==='rename'?'Nome atualizado':k==='pin'?'PIN trocado':'Motoboy removido');await loadStaff();renderTeam();emit()}))}
+    toast(k==='rename'?'Nome atualizado':k==='pin'?'Senha trocada':'Motoboy removido');await loadStaff();renderTeam();emit()}))}
 
 /* ------------------------------ rota ------------------------------ */
 function hav(a,b){const t=x=>x*Math.PI/180,dl=t(b.lng-a.lng),dp=t(b.lat-a.lat),h=Math.sin(dp/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dl/2)**2;return 2*6371*Math.asin(Math.sqrt(h))}
@@ -264,7 +268,7 @@ const pinOf=i=>(S.settings.pins||[])[i]||String(1111*(i+1));
 let sess=null;
 const setSess=x=>{sess=x};
 const isLoja=()=>sess&&sess.role==='loja', isMoto=()=>sess&&sess.role==='motoboy';
-const allowed=v=>v==='cliente'||v==='entrar'||(v==='cozinha'&&isLoja())||(v==='motoboy'&&(isLoja()||isMoto()));
+const allowed=v=>isMoto()?v==='motoboy':v==='cliente'||v==='entrar'||(v==='cozinha'&&isLoja())||(v==='motoboy'&&(isLoja()||isMoto()));
 let wanted=null,loginTab='loja',lastAssigned=-1;
 function renderLogin(){
   const dn=S.settings.drivers;
@@ -474,14 +478,16 @@ function renderCozinha(){
     const done=os.filter(o=>o.status==='entregue'||o.status==='cancelado').slice(-8).reverse();
     if(done.length)h+=`<section class="col" style="grid-column:1/-1"><h3>Finalizados </h3>${done.map(o=>`<div class="o"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${STATUS[o.status]}</span></div><div class="mini">${esc(o.customer.name)} · ${esc(o.addr.bairro)} · ${money(o.total)}</div></div>`).join('')}</section>`}
   $('#board').innerHTML=h;
-  $('#menuAdmin').innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)} · ${money(p.price)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button></div></div>`).join('');
+  const ma=$('#menuAdmin');if(ma.contains(document.activeElement))return;
+  ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button></div></div>`).join('');
 }
 function syncSettings(){const m={'s-pix':S.settings.pix,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}}
 ['s-pix','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else S.settings.wa=v;saveSettings()}));
+document.addEventListener('click',e=>{const k=e.target.closest('[data-k]');if(!k)return;const d=document.getElementById(k.dataset.k);if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})}});
 $('#invF').addEventListener('submit',async e=>{e.preventDefault();const nm=$('#inv-name').value.trim(),pin=$('#inv-pin').value.trim();
-  if(nm.length<2||!/^\d{4,6}$/.test(pin)){toast('Informe o nome e um PIN de 4 a 6 números');return}
+  if(nm.length<2||!/^\d{4,6}$/.test(pin)){toast('Informe o nome e uma senha de 4 a 6 números');return}
   const{error}=await sb.rpc('add_motoboy',{nm,pin});if(error){dbFail(error);return}
-  $('#inv-name').value='';$('#inv-pin').value='';toast('Motoboy cadastrado. Ele entra escolhendo o nome e digitando o PIN.');await loadStaff();renderTeam();emit()});
+  $('#inv-name').value='';$('#inv-pin').value='';toast('Motoboy cadastrado. O login dele aparece na lista abaixo.');await loadStaff();renderTeam();emit()});
 function bindDrv(){const s=$('#drvSel');if(s)s.addEventListener('change',e=>{drv=+e.target.value;LS.set('lb_driver',drv);render()})}
 
 /* ------------------------------ eventos ------------------------------ */
@@ -501,6 +507,7 @@ document.addEventListener('click',e=>{
   
   else if(a==='photo'){photoFor=id;$('#photoIn').click()}
   else if(a==='sold')setSold(id);
+  else if(a==='price')savePrice(id);
   else if(a==='start'){Promise.all(Object.values(S.orders).filter(o=>o.driver===drv&&o.status==='pronto').map(o=>sb.rpc('set_status',{oid:o.id,ns:'rota'}))).then(()=>{loadOrders();toast('Boa entrega!')})}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.act==='assign'){const v=t.value===''?null:+t.value;rpc('assign_driver',{oid:t.dataset.id,drv:v==null?null:S.drivers[v].id}).then(r=>{if(!r.error&&v!=null)toast('Pedido destinado a '+S.settings.drivers[v])})}});
@@ -577,26 +584,25 @@ function renderLogin(){
 async function renderMotoLogin(){
   const box=$('#login');
   box.innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
-   <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Motoboy: escolha seu nome e digite o PIN que a hamburgueria te passou.</div></div>
+   <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Motoboy: entre com o login e a senha que a hamburgueria te passou. Você verá somente a tela de entregas.</div></div>
    <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-who="loja" aria-selected="false">Hamburgueria</button><button type="button" data-who="moto" aria-selected="true">Motoboy</button></div>
    <form id="mf" class="f" style="gap:12px" novalidate>
-    <div class="f"><label for="mf-n">Seu nome</label><select id="mf-n"><option value="">Carregando…</option></select></div>
-    <div class="f"><label for="mf-p">PIN</label><input id="mf-p" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4 a 6 números"><div class="err" id="mf-e" role="alert"></div></div>
+    <div class="f"><label for="mf-n">Login</label><input id="mf-n" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="ex.: motoboy1"></div>
+    <div class="f"><label for="mf-p">Senha</label><input id="mf-p" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"><div class="err" id="mf-e" role="alert"></div></div>
     <button class="btn" type="submit">Entrar</button>
     <button class="btn ghost" type="button" data-go="cliente">Voltar ao cardápio</button>
    </form></div>`;
   $$('[data-who]',box).forEach(b=>b.addEventListener('click',()=>{staffWho=b.dataset.who;renderLogin()}));
-  const sel=$('#mf-n');
-  if(!motoList){const{data,error}=await sb.rpc('motoboy_list');motoList=error?[]:(data||[])}
-  sel.innerHTML=motoList.length?'<option value="">Escolha seu nome</option>'+motoList.map(m=>`<option value="${esc(m.slot)}">${esc(m.name)}</option>`).join(''):'<option value="">Nenhum motoboy cadastrado</option>';
-  $('#mf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#mf-e'),btn=$('#mf button[type=submit]'),slot=sel.value,pin=$('#mf-p').value.trim();err.textContent='';
-    if(!slot){err.textContent='Escolha seu nome.';return}
-    if(!/^\d{4,6}$/.test(pin)){err.textContent='Digite o PIN (4 a 6 números).';return}
-    btn.disabled=true;const r=await sb.auth.signInWithPassword({email:slot+'@lanchesdoboy.com',password:'boy-'+pin});
-    if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'PIN incorreto.':r.error.message;btn.disabled=false;return}
+  $('#mf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#mf-e'),btn=$('#mf button[type=submit]');err.textContent='';
+    const login=$('#mf-n').value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''),pw=$('#mf-p').value.trim();
+    if(!/^motoboy\d+$/.test(login)){err.textContent='Login inválido. Use por exemplo: motoboy1';return}
+    if(!/^\d{4,6}$/.test(pw)){err.textContent='Digite a senha (4 a 6 números).';return}
+    btn.disabled=true;const r=await sb.auth.signInWithPassword({email:login+'@lanchesdoboy.com',password:'boy-'+pw});
+    if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'Login ou senha incorretos.':r.error.message;btn.disabled=false;return}
     applyUser(r.data.user);await refreshRole();
-    if(!isMoto()&&!isLoja()){err.textContent='Este motoboy não está ativo. Fale com a hamburgueria.';btn.disabled=false;return}
+    if(!isMoto()){err.textContent='Este motoboy não está ativo. Fale com a hamburgueria.';await sb.auth.signOut();btn.disabled=false;return}
     if(location.hash==='#motoboy')render();else location.hash='#motoboy'});
+  $('#mf-n').focus({preventScroll:true});
 }
 document.addEventListener('click',e=>{const lt=e.target.closest('[data-lt]');if(lt)e.stopImmediatePropagation()},true);
 
