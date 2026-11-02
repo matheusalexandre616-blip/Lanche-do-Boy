@@ -44,13 +44,16 @@ function orderMsg(o,intro){
   o.items.forEach(it=>{L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
     (it.extras||[]).forEach(x=>L.push('  (1x) '+x));(it.removed||[]).forEach(x=>L.push('  (1x) Retirar '+x));if(it.note)L.push('  Obs.: '+it.note);
     L.push('','Subtotal do item: '+money(it.unit*it.qty),DASH,'')});
-  L.push(LINE,'▶️ *Dados para entrega*','',
+  const PK=o.mode==='retirada';
+  if(PK)L.push(LINE,'▶️ *Retirada no local*','','Nome: '+o.customer.name,'Retirar em: '+STORE.addr.replace(', Brasil',''),'WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: grátis (retirada)','','🕐 Pronto para retirar em aprox. '+etaRange(o.eta),'');
+  else{L.push(LINE,'▶️ *Dados para entrega*','',
     'Nome: '+o.customer.name,'Endereço: '+o.addr.street+', nº '+o.addr.number,'Bairro: '+o.addr.bairro+(o.addr.cep?'\nCEP: '+o.addr.cep:''));
   if(o.addr.comp)L.push('Complemento/Referência: '+o.addr.comp);
-  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','🕐 Tempo de Entrega: aprox. '+etaRange(o.eta),'',
+  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','🕐 Tempo de Entrega: aprox. '+etaRange(o.eta),'')}
+  L.push(
     LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'','▶️ *PAGAMENTO*','');
   const m=o.pay.method;
-  L.push(m==='pix'?'Pagamento por Pix'+(S.settings.pix?'\nChave Pix: '+S.settings.pix:''):m==='dinheiro'?'Pagamento em dinheiro na entrega'+(o.pay.change?'\nTroco para: '+money(o.pay.change):''):'Pagamento no cartão na entrega');
+  L.push(m==='pix'?'Pagamento por Pix'+(S.settings.pix?'\nChave Pix: '+S.settings.pix:''):m==='dinheiro'?'Pagamento em dinheiro na '+(PK?'retirada':'entrega')+(o.pay.change?'\nTroco para: '+money(o.pay.change):''):'Pagamento no cartão na '+(PK?'retirada':'entrega'));
   L.push('','🍔 Lanches do Boy · Av. João XXIII, 439');
   return L.join('\n');
 }
@@ -179,7 +182,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 const S={orders:{},rows:[],settings:{open:true,pix:'',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
-const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min}};
+const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega'}};
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false}).limit(300);
@@ -191,7 +194,7 @@ async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();retur
   rebuildOrders()}
 function setList(arr,items){arr.length=0;items.forEach(x=>arr.push(x))}
 async function loadCatalog(){
-  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*'),sb.from('zones').select('*'),sb.from('store_settings').select('*').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
+  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
   if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||''})));
     Object.keys(P).forEach(k=>delete P[k]);MENU.forEach(m=>P[m.id]=m);
     const so={};p.data.forEach(r=>{if(r.sold_out)so[r.id]=true});S.settings.soldOut=so}
@@ -371,15 +374,19 @@ function openCart(){
   if(!cart.length){closeSheet();return}
   const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Sua sacola</h2></div><div class="bd">
   ${cart.map((l,i)=>`<div class="line"><div><b>${l.qty}× ${esc(l.name)}</b>${l.extras.length?`<small>+ ${esc(l.extras.join(', '))}</small>`:''}${l.removed.length?`<small>sem ${esc(l.removed.join(', '))}</small>`:''}${l.note?`<small>“${esc(l.note)}”</small>`:''}<div class="stepper" style="margin-top:8px"><button data-ci="${i}" data-d="-1" aria-label="Menos">−</button><span>${l.qty}</span><button data-ci="${i}" data-d="1" aria-label="Mais">+</button></div></div><b>${money(l.total*l.qty)}</b></div>`).join('')}
-  <div class="sum"><div><span>Subtotal</span><span>${money(cartSub())}</span></div><div class="mini"><span>A taxa de entrega é calculada pelo endereço na próxima etapa.</span></div></div>
-  <button class="btn" data-act="checkout" ${S.settings.open?'':'disabled'}>${S.settings.open?'Continuar para entrega':'Loja fechada no momento'}</button></div>`;
+  <div class="sum"><div><span>Subtotal</span><span>${money(cartSub())}</span></div><div class="mini"><span>Na próxima etapa escolha entrega ou retirada no local (sem taxa).</span></div></div>
+  <button class="btn" data-act="checkout" ${S.settings.open?'':'disabled'}>${S.settings.open?'Continuar':'Loja fechada no momento'}</button></div>`;
   openSheet(html,sh=>sh.addEventListener('click',e=>{const b=e.target.closest('[data-ci]');if(!b)return;const l=cart[+b.dataset.ci];l.qty+= +b.dataset.d;if(l.qty<1)cart.splice(+b.dataset.ci,1);saveCart();emit();openCart()}));
 }
 function openCheckout(){
   const c=Object.assign({},LS.get('lb_cust',{}),cust||{});
-  const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Entrega e pagamento</h2></div><form class="bd" id="ck" novalidate>
+  const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Finalizar pedido</h2></div><form class="bd" id="ck" novalidate>
+  <div class="opts"><h4>Como você quer receber?</h4>
+   <label class="opt on"><span><b>Entrega</b><small class="mini" style="display:block">O motoboy leva até você</small></span><input type="radio" name="mode" value="entrega" checked></label>
+   <label class="opt"><span><b>Retirar no local</b><small class="mini" style="display:block">Sem taxa de entrega · ${esc(STORE.addr.replace(', Brasil',''))}</small></span><input type="radio" name="mode" value="retirada"></label></div>
   <div class="g2"><div class="f w"><label for="ck-name">Seu nome</label><input id="ck-name" autocomplete="name" value="${esc(c.name||'')}"><div class="err" id="e-name"></div></div>
-  <div class="f w"><label for="ck-phone">WhatsApp</label><input id="ck-phone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999" maxlength="15" value="${esc(fmtPhone(c.phone||''))}"><div class="err" id="e-phone"></div></div>
+  <div class="f w"><label for="ck-phone">WhatsApp</label><input id="ck-phone" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999" maxlength="15" value="${esc(fmtPhone(c.phone||''))}"><div class="err" id="e-phone"></div></div></div>
+  <div class="g2" id="addrBox"><div class="f w" style="margin:0"><h4 class="lbl" style="margin:0">Endereço de entrega</h4></div>
   <div class="f w"><label for="ck-cep">CEP</label><input id="ck-cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" value="${esc(fmtCep(c.cep||''))}"><div class="mini" id="cep-st" role="status" aria-live="polite">Digite o CEP para preencher o endereço automaticamente.</div><div class="err" id="e-cep"></div></div>
   <div class="f w"><label for="ck-street">Rua ou avenida</label><input id="ck-street" autocomplete="address-line1" value="${esc(c.street||'')}"><div class="err" id="e-street"></div></div>
   <div class="f"><label for="ck-num">Número</label><input id="ck-num" inputmode="numeric" value="${esc(c.num||'')}"><div class="err" id="e-num"></div></div>
@@ -388,14 +395,15 @@ function openCheckout(){
   <div class="f w"><label for="ck-comp">Complemento ou referência</label><input id="ck-comp" value="${esc(c.comp||'')}" placeholder="Apto, bloco, ponto de referência"></div></div>
   <div class="opts"><h4>Pagamento</h4>
    <label class="opt on"><span>Pix (chave aparece após o pedido)</span><input type="radio" name="pay" value="pix" checked></label>
-   <label class="opt"><span>Dinheiro na entrega</span><input type="radio" name="pay" value="dinheiro"></label>
-   <label class="opt"><span>Cartão na entrega</span><input type="radio" name="pay" value="cartao"></label></div>
+   <label class="opt"><span id="pl-din">Dinheiro na entrega</span><input type="radio" name="pay" value="dinheiro"></label>
+   <label class="opt"><span id="pl-car">Cartão na entrega</span><input type="radio" name="pay" value="cartao"></label></div>
   <div class="f" id="chg" hidden><label for="ck-change">Troco para quanto?</label><input id="ck-change" inputmode="decimal" placeholder="Ex.: 50"></div>
   <div class="sum" id="ck-sum"></div>
   <button class="btn" type="submit" ${S.settings.open?'':'disabled'}>${S.settings.open?'Enviar pedido':'Loja fechada no momento'}</button></form>`;
   openSheet(html,sh=>{
-    const fee=()=>feeFor($('#ck-bairro',sh).value);
-    const sum=()=>{$('#ck-sum',sh).innerHTML=`<div><span>Subtotal</span><span>${money(cartSub())}</span></div><div><span>Entrega</span><span>${money(fee())}</span></div><div class="tot"><span>Total</span><span>${money(cartSub()+fee())}</span></div>`};sum();
+    const pick=()=>{const m=$('[name=mode]:checked',sh);return !!m&&m.value==='retirada'};
+    const fee=()=>pick()?0:feeFor($('#ck-bairro',sh).value);
+    const sum=()=>{$('#ck-sum',sh).innerHTML=`<div><span>Subtotal</span><span>${money(cartSub())}</span></div><div><span>${pick()?'Retirada no local':'Entrega'}</span><span>${pick()?'Grátis':money(fee())}</span></div><div class="tot"><span>Total</span><span>${money(cartSub()+fee())}</span></div>`};sum();
     sh.addEventListener('input',e=>{if(e.target.id==='ck-bairro')sum();if(e.target.id==='ck-cep'){const d=digits(e.target.value);if(d.length===8)doCep(d)}});
     let lastCep='';
     const doCep=async d=>{if(d===lastCep)return;lastCep=d;const st=$('#cep-st',sh);st.textContent='Buscando endereço...';
@@ -408,21 +416,22 @@ function openCheckout(){
       }catch(err){st.textContent='Não foi possível consultar o CEP agora. Preencha o endereço manualmente.'}
     };
     if(digits($('#ck-cep',sh).value).length===8)lastCep=digits($('#ck-cep',sh).value);
-    sh.addEventListener('change',e=>{if(e.target.name==='pay'){$$('.opt',sh).forEach(x=>{if(x.querySelector('[name=pay]'))x.classList.toggle('on',x.querySelector('[name=pay]').checked)});$('#chg',sh).hidden=e.target.value!=='dinheiro'}});
+    const applyMode=()=>{const p=pick();$('#addrBox',sh).hidden=p;$('#pl-din',sh).textContent=p?'Dinheiro na retirada':'Dinheiro na entrega';$('#pl-car',sh).textContent=p?'Cartão na retirada':'Cartão na entrega';$$('[name=mode]',sh).forEach(r=>r.closest('.opt').classList.toggle('on',r.checked));sum()};
+    sh.addEventListener('change',e=>{if(e.target.name==='mode')applyMode();if(e.target.name==='pay'){$$('.opt',sh).forEach(x=>{if(x.querySelector('[name=pay]'))x.classList.toggle('on',x.querySelector('[name=pay]').checked)});$('#chg',sh).hidden=e.target.value!=='dinheiro'}});
     $('#ck',sh).addEventListener('submit',e=>{e.preventDefault();
       const v=id=>$('#'+id,sh).value.trim();let bad=false;const chk=(id,er,ok,msg)=>{$('#'+er,sh).textContent=ok?'':msg;if(!ok)bad=true};
-      chk('ck-name','e-name',v('ck-name').length>1,'Informe seu nome.');chk('ck-phone','e-phone',digits(v('ck-phone')).length>=10,'Informe o WhatsApp com DDD.');chk('ck-street','e-street',v('ck-street').length>2,'Informe a rua.');chk('ck-num','e-num',v('ck-num').length>0,'Informe o número.');chk('ck-bairro','e-bairro',v('ck-bairro').length>1,'Informe o bairro.');chk('ck-cep','e-cep',!v('ck-cep')||digits(v('ck-cep')).length===8,'CEP deve ter 8 números.');
+      chk('ck-name','e-name',v('ck-name').length>1,'Informe seu nome.');chk('ck-phone','e-phone',digits(v('ck-phone')).length>=10,'Informe o WhatsApp com DDD.');const PK=pick();chk('ck-street','e-street',PK||v('ck-street').length>2,'Informe a rua.');chk('ck-num','e-num',PK||v('ck-num').length>0,'Informe o número.');chk('ck-bairro','e-bairro',PK||v('ck-bairro').length>1,'Informe o bairro.');chk('ck-cep','e-cep',PK||!v('ck-cep')||digits(v('ck-cep')).length===8,'CEP deve ter 8 números.');
       if(bad)return;
       const pay=$('[name=pay]:checked',sh).value;
       const btn=$('#ck button[type=submit]',sh);btn.disabled=true;btn.textContent='Enviando...';
-      const payload={items:cart.map(l=>({pid:l.pid,qty:l.qty,extras:l.xids||[],removed:l.removed||[],note:l.note||''})),
+      const payload={mode:PK?'retirada':'entrega',items:cart.map(l=>({pid:l.pid,qty:l.qty,extras:l.xids||[],removed:l.removed||[],note:l.note||''})),
         customer:{name:v('ck-name'),phone:v('ck-phone')},
         addr:{cep:v('ck-cep'),street:v('ck-street'),number:v('ck-num'),bairro:v('ck-bairro'),city:v('ck-city')||'Belo Horizonte - MG',comp:v('ck-comp')},
         pay:{method:pay,change:pay==='dinheiro'?parseFloat(v('ck-change').replace(',','.'))||0:0}};
-      btn.textContent='Calculando entrega...';geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
+      btn.textContent=PK?'Enviando...':'Calculando entrega...';(PK?Promise.resolve(null):geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`)).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
         if(error){btn.disabled=false;btn.textContent='Enviar pedido';dbFail(error);return}
         const o=rowToOrder(data);S.orders[o.id]=o;
-        LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
+        if(o.mode!=='retirada')LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
         cart=[];saveCart();closeSheet();toast('Pedido enviado para a hamburgueria');openSent(o);loadOrders()});
     });
   });
@@ -439,12 +448,11 @@ function renderTrackBase(){
   const t=TRK_T||$('#trk');if(!t)return;
   const my=myOrders();
   if(!my.length){t.innerHTML='<div class="empty">Você ainda não fez pedidos.</div>';return}
-  const stp=['novo','preparo','pronto','rota','entregue'],lab=['Recebido','Preparando','Pronto','A caminho','Entregue'];
-  t.innerHTML=my.map(o=>{const i=stp.indexOf(o.status);const can=o.status==='cancelado';
-    return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="d" style="font-size:20px">Pedido #${o.code}</b><span class="pill ${can?'closed':o.status==='entregue'?'':'warn'}">${STATUS[o.status]}</span></div>
-    ${can?'<p class="mini">A hamburgueria não pôde aceitar este pedido. Chame no WhatsApp da loja.</p>':`<div class="steps">${lab.map((l,k)=>`<div class="${k<=i?'on':''}">${l}</div>`).join('')}</div>`}
+  t.innerHTML=my.map(o=>{const PK=o.mode==='retirada',stp=PK?['novo','preparo','pronto','entregue']:['novo','preparo','pronto','rota','entregue'],lab=PK?['Recebido','Preparando','Pronto p/ retirar','Retirado']:['Recebido','Preparando','Pronto','A caminho','Entregue'];const i=stp.indexOf(o.status);const can=o.status==='cancelado';
+    return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="d" style="font-size:20px">Pedido #${o.code}</b><span class="pill ${can?'closed':o.status==='entregue'?'':'warn'}">${PK&&o.status==='entregue'?'Retirado':PK&&o.status==='pronto'?'Pronto p/ retirar':STATUS[o.status]}</span></div>
+    ${can?'<p class="mini">A hamburgueria não pôde aceitar este pedido. Chame no WhatsApp da loja.</p>':`<div class="steps" style="grid-template-columns:repeat(${lab.length},1fr)">${lab.map((l,k)=>`<div class="${k<=i?'on':''}">${l}</div>`).join('')}</div>`}
     ${can?'':trackExtra(o)}<ul style="margin:8px 0;padding-left:18px">${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}</li>`).join('')}</ul>
-    <div class="sum"><div><span>Entrega em ${esc(o.addr.bairro)}</span><span>${money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
+    <div class="sum"><div><span>${PK?'Retirada no local':'Entrega em '+esc(o.addr.bairro)}</span><span>${PK?'Grátis':money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
     ${o.pay.method==='pix'&&!o.pixPaid&&!can?`<div style="margin-top:10px"><div class="lbl">Pague com Pix e avise a loja</div>${S.settings.pix?`<div class="copy"><span style="flex:1">${esc(S.settings.pix)}</span><button class="btn sm dark" data-act="copy" data-t="${esc(S.settings.pix)}">Copiar</button></div>`:'<div class="mini">A chave Pix será enviada pela loja no WhatsApp.</div>'}</div>`:''}
     ${o.pay.method==='pix'&&o.pixPaid?'<p class="pill" style="margin-top:10px"><i></i>Pix confirmado</p>':''}</div>`}).join('<div style="height:10px"></div>');
 }
@@ -458,12 +466,13 @@ function orderCard(o){
   if(o.pay.method==='pix'&&!o.pixPaid&&o.status!=='cancelado')a+=`<button class="btn sm ghost" data-act="pix" data-id="${o.id}">Confirmar Pix recebido</button>`;
   if(o.status==='novo')a+=`<button class="btn sm" data-act="st" data-id="${o.id}" data-s="preparo">Aceitar e preparar</button><button class="btn sm ghost" data-act="st" data-id="${o.id}" data-s="cancelado">Recusar</button>`;
   if(o.status==='preparo')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="pronto">Marcar pronto</button>`;
-  if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
+  if(o.status==='pronto'&&o.mode==='retirada')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Cliente retirou</button>`;
+  else if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
   if(o.status==='rota')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Confirmar entrega</button>`;
   a+=`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`;
-  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
+  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='retirada'?'<span class="pill">🏪 Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
   return `<article class="o ${o.status==='novo'?'new':''}"><div class="h"><b>#${o.code}</b><span class="mini">${hhmm(o.createdAt)} · há ${ago(o.createdAt)}</span></div>
-   <div><b>${esc(o.customer.name)}</b> <span class="mini">${esc(o.addr.street)}, ${esc(o.addr.number)} · ${esc(o.addr.bairro)} · ${esc(fmtPhone(o.customer.phone))}</span></div>${itemsHtml(o)}
+   <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='retirada'?'🏪 Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)} · ${esc(fmtPhone(o.customer.phone))}</span></div>${itemsHtml(o)}
    <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
 function renderCozinha(){
   const os=Object.values(S.orders).sort((a,b)=>a.createdAt-b.createdAt);
@@ -656,7 +665,7 @@ async function loadLoc(){if(!S.user)return;try{const{data}=await sb.from('driver
 let leafP=null;function loadLeaflet(){if(window.L)return Promise.resolve();return leafP||(leafP=new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet.js';sc.onload=res;sc.onerror=()=>{leafP=null;rej()};document.head.appendChild(sc)}))}
 const ACTIVE=['novo','preparo','pronto','rota'];
 function trackExtra(o){if(!ACTIVE.includes(o.status))return'';
-  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
+  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${o.mode==='retirada'?`<div class="mini">🏪 Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
 function renderTrack(){const real=$('#trk');if(!real)return;const tmp=document.createElement('div');TRK_T=tmp;try{renderTrackBase()}finally{TRK_T=null}
   if(real.dataset.sig!==tmp.innerHTML){Object.keys(maps).forEach(k=>{try{maps[k].map.remove()}catch(e){}delete maps[k]});real.innerHTML=tmp.innerHTML;real.dataset.sig=tmp.innerHTML}
   drawMaps()}
@@ -677,9 +686,11 @@ function updateTrackLive(){
     const loc=o.drvId&&S.loc[o.drvId],dest=o.dlat!=null?{lat:o.dlat,lng:o.dlng}:null;let mins=null,st='';
     if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você.`}
     else if(o.eta){mins=Math.max(5,o.eta-(Date.now()-o.createdAt)/60000)}
+    if(!st&&o.mode==='retirada')st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Seu pedido está pronto! Pode vir retirar. 🏪'}[o.status]||'';
+    if(o.mode==='retirada'&&o.status==='pronto')mins=null;
     if(!st)st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Pedido pronto, aguardando o motoboy sair.',rota:'O motoboy saiu para entrega. Localização em instantes.'}[o.status]||'';
     const m=mins==null?null:Math.max(3,Math.round(mins));
-    e1.textContent=m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':'Previsão: ~')+m+' min';
+    e1.textContent=o.mode==='retirada'&&o.status==='pronto'?'Pronto para retirar':m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':o.mode==='retirada'?'Pronto em ~':'Previsão: ~')+m+' min';
     const e2=document.getElementById('eta2-'+o.id);if(e2)e2.textContent=m==null?'':'por volta de '+hhmm(Date.now()+m*60000);
     const e3=document.getElementById('trkst-'+o.id);if(e3)e3.textContent=st;
     const mp=maps[o.id];if(mp&&mp.map){
