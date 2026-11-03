@@ -33,15 +33,16 @@ function openLogin(next){
     $('#cl',sh).addEventListener('submit',e=>{e.preventDefault();const n=$('#cl-name',sh).value.trim(),ph=$('#cl-phone',sh).value.trim();let bad=false;
       $('#cl-en',sh).textContent=n.length>1?'':(bad=true,'Informe seu nome.');$('#cl-ep',sh).textContent=digits(ph).length>=10?'':(bad=true,'Informe o WhatsApp com DDD.');if(bad)return;
       cust={name:n,phone:ph};LS.set('lb_login',cust);LS.set('lb_cust',Object.assign({},LS.get('lb_cust',{}),{name:n,phone:ph}));
-      closeSheet();toast('Olá, '+n.split(' ')[0]+'!');render();if(next==='checkout')openCheckout()});
+      closeSheet();toast('Olá, '+n.split(' ')[0]+'!');render();if(next==='checkout')openCheckout();else if(next==='group')createGroup()});
     $('#cl-name',sh).focus({preventScroll:true})});
 }
 const DASH='- - - - - - - - - - -',LINE='------------------------------------';
 function orderMsg(o,intro){
   const L=[];
   if(intro!==false)L.push('Muito obrigado por realizar seu pedido conosco, *'+o.customer.name+'*! Segue abaixo um resumo do seu pedido','');
-  L.push('*Pedido #'+o.code+'*',LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'');
-  o.items.forEach(it=>{L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
+  L.push('*Pedido #'+o.code+'*'+(o.items.some(it=>it.person)?' · 👥 Pedido em grupo':''),LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'');
+  let lastP=null;
+  o.items.forEach(it=>{if(it.person&&it.person!==lastP){lastP=it.person;L.push('👤 *'+it.person+'*','')}L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
     (it.extras||[]).forEach(x=>L.push('  (1x) '+x));(it.removed||[]).forEach(x=>L.push('  (1x) Retirar '+x));if(it.note)L.push('  Obs.: '+it.note);
     L.push('','Subtotal do item: '+money(it.unit*it.qty),DASH,'')});
   const PK=o.mode==='retirada';
@@ -54,6 +55,7 @@ function orderMsg(o,intro){
     LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'','▶️ *PAGAMENTO*','');
   const m=o.pay.method;
   L.push(m==='pix'?'Pagamento por Pix'+(S.settings.pix?'\nChave Pix: '+S.settings.pix:''):m==='dinheiro'?'Pagamento em dinheiro na '+(PK?'retirada':'entrega')+(o.pay.change?'\nTroco para: '+money(o.pay.change):''):'Pagamento no cartão na '+(PK?'retirada':'entrega'));
+  const ppl=groupPeople(o);if(ppl.length>1){const fs=o.fee/ppl.length;L.push('',LINE,'▶️ *QUANTO CADA UM PAGA*','');ppl.forEach(p=>L.push(p.person+': '+money(p.sub+fs)+(o.fee?' (lanches '+money(p.sub)+' + taxa '+money(fs)+')':'')))}
   L.push('','🍔 Lanches do Boy · Av. João XXIII, 439');
   return L.join('\n');
 }
@@ -182,10 +184,10 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 const S={orders:{},rows:[],settings:{open:true,pix:'',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
-const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega'}};
+const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega',grp:r.group_id||null}};
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
-  const{data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false}).limit(300);
+  const{data,error}=await sb.from('orders').select('*').is('hidden_at',null).order('created_at',{ascending:false}).limit(300);
   if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc()}
 async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();return}
   const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
@@ -322,7 +324,8 @@ const cartCount=()=>cart.reduce((a,l)=>a+l.qty,0),cartSub=()=>cart.reduce((a,l)=
 const saveCart=()=>LS.set('lb_cart',cart);
 function thumb(p){const u=S.photos[p.id]||PHOTOS[p.id];if(u)return `<img src="${u}" alt="${esc(p.name)}" loading="lazy">`;return `<img class="nophoto" src="${LOGO_SM}" alt="Lanches do Boy">`;}
 function renderCliente(){
-  const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=`<img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014">`;
+  const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
+  renderGroupBar();
   $('#feeMin').textContent='a partir de '+money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
   const open=S.settings.open;const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':'Loja fechada';
   $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
@@ -341,10 +344,10 @@ function renderDock(v,mine){
   const d=$('#dock'),in_=$('#dockIn');
   if(v!=='cliente'){d.hidden=true;return}
   const act=myOrders().filter(o=>o.status!=='entregue'&&o.status!=='cancelado').length;
-  const n=cartCount();
-  if(!n&&!act){d.hidden=true;return}
+  const n=groupActive()?0:cartCount(),gb=groupActive()?groupDockBtn():'';
+  if(!n&&!act&&!gb){d.hidden=true;return}
   d.hidden=false;
-  in_.innerHTML=(act?`<button class="btn round" data-act="track" aria-label="Meus pedidos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/></svg><span class="badge">${act}</span></button>`:'')+(n?`<button class="btn grow" data-act="cart"><span><span class="cnt">${n}</span>Ver sacola</span><b>${money(cartSub())}</b></button>`:'');
+  in_.innerHTML=(act?`<button class="btn round" data-act="track" aria-label="Meus pedidos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/></svg><span class="badge">${act}</span></button>`:'')+gb+(n?`<button class="btn grow" data-act="cart"><span><span class="cnt">${n}</span>Ver sacola</span><b>${money(cartSub())}</b></button>`:'');
 }
 
 /* ------------------------------ sheets ------------------------------ */
@@ -364,8 +367,10 @@ function openProduct(id){
     const tot=()=>{$('#ptot',sh).textContent=money(calc()*qty)};tot();
     sh.addEventListener('change',e=>{const t=e.target;if(t.dataset.ex){t.checked?ex.add(t.dataset.ex):ex.delete(t.dataset.ex);t.closest('.opt').classList.toggle('on',t.checked)}if(t.dataset.rm){t.checked?rm.add(t.dataset.rm):rm.delete(t.dataset.rm);t.closest('.opt').classList.toggle('on',t.checked)}tot()});
     sh.addEventListener('click',e=>{const q=e.target.closest('[data-q]');if(q){qty=Math.max(1,Math.min(20,qty+ +q.dataset.q));$('#pq',sh).textContent=qty;tot()}});
+    if(groupActive())$('#padd span',sh).textContent='Adicionar ao grupo';
     $('#padd',sh).addEventListener('click',()=>{note=$('#pn',sh).value.trim();
       const exs=[...ex].sort(),rms=[...rm].sort(),key=[id,exs,rms,note].join('|');
+      if(groupActive()){groupAdd($('#padd',sh),id,qty,exs,rms,note);return}
       const hit=cart.find(l=>l.key===key);if(hit)hit.qty+=qty;else cart.push({key,pid:id,name:p.name,qty,total:calc(),extras:exs.map(e=>list.find(x=>x.id===e).n),xids:exs,removed:rms,note});
       saveCart();closeSheet();toast('Adicionado à sacola');emit()});
   });
@@ -378,9 +383,10 @@ function openCart(){
   <button class="btn" data-act="checkout" ${S.settings.open?'':'disabled'}>${S.settings.open?'Continuar':'Loja fechada no momento'}</button></div>`;
   openSheet(html,sh=>sh.addEventListener('click',e=>{const b=e.target.closest('[data-ci]');if(!b)return;const l=cart[+b.dataset.ci];l.qty+= +b.dataset.d;if(l.qty<1)cart.splice(+b.dataset.ci,1);saveCart();emit();openCart()}));
 }
-function openCheckout(){
+function openCheckout(opts){
+  const G=opts&&opts.group&&GRP.data?GRP.data:null;const SUB=()=>G?grpSub(G):cartSub();
   const c=Object.assign({},LS.get('lb_cust',{}),cust||{});
-  const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Finalizar pedido</h2></div><form class="bd" id="ck" novalidate>
+  const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>${G?'Enviar pedido do grupo':'Finalizar pedido'}</h2></div><form class="bd" id="ck" novalidate>
   <div class="opts"><h4>Como você quer receber?</h4>
    <label class="opt on"><span><b>Entrega</b><small class="mini" style="display:block">O motoboy leva até você</small></span><input type="radio" name="mode" value="entrega" checked></label>
    <label class="opt"><span><b>Retirar no local</b><small class="mini" style="display:block">Sem taxa de entrega · ${esc(STORE.addr.replace(', Brasil',''))}</small></span><input type="radio" name="mode" value="retirada"></label></div>
@@ -403,7 +409,7 @@ function openCheckout(){
   openSheet(html,sh=>{
     const pick=()=>{const m=$('[name=mode]:checked',sh);return !!m&&m.value==='retirada'};
     const fee=()=>pick()?0:feeFor($('#ck-bairro',sh).value);
-    const sum=()=>{$('#ck-sum',sh).innerHTML=`<div><span>Subtotal</span><span>${money(cartSub())}</span></div><div><span>${pick()?'Retirada no local':'Entrega'}</span><span>${pick()?'Grátis':money(fee())}</span></div><div class="tot"><span>Total</span><span>${money(cartSub()+fee())}</span></div>`};sum();
+    const sum=()=>{$('#ck-sum',sh).innerHTML=`<div><span>Subtotal</span><span>${money(SUB())}</span></div><div><span>${pick()?'Retirada no local':'Entrega'}</span><span>${pick()?'Grátis':money(fee())}</span></div><div class="tot"><span>Total</span><span>${money(SUB()+fee())}</span></div>`};sum();
     sh.addEventListener('input',e=>{if(e.target.id==='ck-bairro')sum();if(e.target.id==='ck-cep'){const d=digits(e.target.value);if(d.length===8)doCep(d)}});
     let lastCep='';
     const doCep=async d=>{if(d===lastCep)return;lastCep=d;const st=$('#cep-st',sh);st.textContent='Buscando endereço...';
@@ -428,11 +434,11 @@ function openCheckout(){
         customer:{name:v('ck-name'),phone:v('ck-phone')},
         addr:{cep:v('ck-cep'),street:v('ck-street'),number:v('ck-num'),bairro:v('ck-bairro'),city:v('ck-city')||'Belo Horizonte - MG',comp:v('ck-comp')},
         pay:{method:pay,change:pay==='dinheiro'?parseFloat(v('ck-change').replace(',','.'))||0:0}};
-      btn.textContent=PK?'Enviando...':'Calculando entrega...';(PK?Promise.resolve(null):geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`)).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
+      btn.textContent=PK?'Enviando...':'Calculando entrega...';(PK?Promise.resolve(null):geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`)).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';if(G){delete payload.items;return sb.rpc('group_close',{c:GRP.code,p:payload})}return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
         if(error){btn.disabled=false;btn.textContent='Enviar pedido';dbFail(error);return}
         const o=rowToOrder(data);S.orders[o.id]=o;
         if(o.mode!=='retirada')LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
-        cart=[];saveCart();closeSheet();toast('Pedido enviado para a hamburgueria');openSent(o);loadOrders()});
+        if(G)clearGroup();else{cart=[];saveCart()}closeSheet();toast('Pedido enviado para a hamburgueria');openSent(o);loadOrders()});
     });
   });
 }
@@ -459,7 +465,7 @@ function renderTrackBase(){
 
 /* ------------------------------ hamburgueria ------------------------------ */
 const COLS=[['novo','Novos'],['preparo','Em preparo'],['pronto','Prontos para sair'],['rota','Em rota']];
-function itemsHtml(o){return `<ul>${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}${(it.extras&&it.extras.length)||(it.removed&&it.removed.length)||it.note?`<small>${it.extras&&it.extras.length?'+ '+esc(it.extras.join(', '))+' ':''}${it.removed&&it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}</li>`).join('')}</ul>`}
+function itemsHtml(o){return `<ul>${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}${it.person?` <span class="who">${esc(it.person)}</span>`:''}${(it.extras&&it.extras.length)||(it.removed&&it.removed.length)||it.note?`<small>${it.extras&&it.extras.length?'+ '+esc(it.extras.join(', '))+' ':''}${it.removed&&it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}</li>`).join('')}</ul>`}
 function payBadge(o){const m=o.pay.method;if(m==='pix')return o.pixPaid?'<span class="pill">Pix pago</span>':'<span class="pill warn">Pix pendente</span>';if(m==='dinheiro')return `<span class="pill warn">Dinheiro${o.pay.change?' · troco p/ '+money(o.pay.change):''}</span>`;return '<span class="pill warn">Cartão na entrega</span>'}
 function orderCard(o){
   const dn=S.settings.drivers;let a='';
@@ -469,26 +475,26 @@ function orderCard(o){
   if(o.status==='pronto'&&o.mode==='retirada')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Cliente retirou</button>`;
   else if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
   if(o.status==='rota')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Confirmar entrega</button>`;
-  a+=`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`;
+  a+=`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a><button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
   const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='retirada'?'<span class="pill">🏪 Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
   return `<article class="o ${o.status==='novo'?'new':''}"><div class="h"><b>#${o.code}</b><span class="mini">${hhmm(o.createdAt)} · há ${ago(o.createdAt)}</span></div>
    <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='retirada'?'🏪 Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)} · ${esc(fmtPhone(o.customer.phone))}</span></div>${itemsHtml(o)}
-   <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
+   <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.grp?`<span class="pill">👥 Grupo · ${groupPeople(o).length} pessoas</span>`:''}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
 function renderCozinha(){
   const os=Object.values(S.orders).sort((a,b)=>a.createdAt-b.createdAt);
   const today=os.filter(o=>new Date(o.createdAt).toDateString()===new Date().toDateString()&&o.status!=='cancelado');
   const rev=today.reduce((a,o)=>a+o.total,0);
-  $('#stats').innerHTML=`<div class="stat"><b>${os.filter(o=>o.status==='novo').length}</b><span>Novos pedidos</span></div><div class="stat"><b>${os.filter(o=>o.status==='preparo').length}</b><span>Em preparo</span></div><div class="stat"><b>${os.filter(o=>o.status==='rota').length}</b><span>Em rota</span></div><div class="stat"><b>${money(rev)}</b><span>Vendas de hoje (${today.length})</span></div><div class="stat"><b>${etaInfo?etaInfo.prep+' min':'–'}</b><span>Preparo estimado · fila ${etaInfo?etaInfo.queue:0}</span></div>
+  $('#stats').innerHTML=`<div class="stat"><b>${os.filter(o=>o.status==='novo').length}</b><span>Novos pedidos</span></div><div class="stat"><b>${os.filter(o=>o.status==='preparo').length}</b><span>Em preparo</span></div><div class="stat"><b>${os.filter(o=>o.status==='rota').length}</b><span>Em rota</span></div><div class="stat"><b>${os.filter(o=>o.status==='entregue'&&isToday(doneAt(o))).length}</b><span>Saíram hoje (finalizados)</span></div><div class="stat"><b>${money(rev)}</b><span>Vendas de hoje (${today.length})</span></div><div class="stat"><b>${etaInfo?etaInfo.prep+' min':'–'}</b><span>Preparo estimado · fila ${etaInfo?etaInfo.queue:0}</span></div>
    <div class="stat" style="display:flex;flex-direction:column;gap:8px;justify-content:center"><span class="pill ${S.settings.open?'':'closed'}" style="align-self:flex-start"><i></i>${S.settings.open?'Loja aberta':'Loja fechada'}</span><button class="btn sm dark" data-act="toggleOpen">${S.settings.open?'Fechar a loja':'Abrir a loja'}</button></div>`;
   const live=os.filter(o=>o.status!=='entregue'&&o.status!=='cancelado');
   let h='';
   if(!os.length)h=`<div class="sample"><b class="d" style="font-size:22px">Nenhum pedido ainda</b><span class="mini">Os pedidos feitos na aba Cliente aparecem aqui na hora.</span></div>`;
   else{h=COLS.map(([s,t])=>{const l=live.filter(o=>o.status===s);return `<section class="col" data-s="${s}"><h3>${t} <span class="badge">${l.length}</span></h3>${l.map(orderCard).join('')||'<div class="mini" style="padding:8px 4px">Nenhum pedido.</div>'}</section>`}).join('');
-    const done=os.filter(o=>o.status==='entregue'||o.status==='cancelado').slice(-8).reverse();
-    if(done.length)h+=`<section class="col" style="grid-column:1/-1"><h3>Finalizados </h3>${done.map(o=>`<div class="o"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${STATUS[o.status]}</span></div><div class="mini">${esc(o.customer.name)} · ${esc(o.addr.bairro)} · ${money(o.total)}</div></div>`).join('')}</section>`}
+    h+=finishedHtml(os);
+  }
   $('#board').innerHTML=h;
-  const ma=$('#menuAdmin');if(ma.contains(document.activeElement))return;
-  ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button></div></div>`).join('');
+  const ma=$('#menuAdmin'),ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&ma.contains(ae))return;
+  ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
 }
 function syncSettings(){const m={'s-pix':S.settings.pix,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}}
 ['s-pix','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else S.settings.wa=v;saveSettings()}));
@@ -517,6 +523,19 @@ document.addEventListener('click',e=>{
   else if(a==='photo'){photoFor=id;$('#photoIn').click()}
   else if(a==='sold')setSold(id);
   else if(a==='price')savePrice(id);
+  else if(a==='pdel')removeProduct(b,id);
+  else if(a==='odetail')openOrderDetail(id);
+  else if(a==='ohide')hideOrder(b,id);
+  else if(a==='ohideall')hideAllFinished(b);
+  else if(a==='gcreate'){cust?createGroup():openLogin('group')}
+  else if(a==='gopen')openGroup();
+  else if(a==='gshare')shareGroup();
+  else if(a==='gcopy')copy(groupLink());
+  else if(a==='grm')groupRemove(b.dataset.item);
+  else if(a==='gclose')openCheckout({group:true});
+  else if(a==='gcancel')cancelGroup(b);
+  else if(a==='gleave')leaveGroup();
+  else if(a==='gname')askGroupName();
   else if(a==='start'){Promise.all(Object.values(S.orders).filter(o=>o.driver===drv&&o.status==='pronto').map(o=>sb.rpc('set_status',{oid:o.id,ns:'rota'}))).then(()=>{loadOrders();toast('Boa entrega!')})}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.act==='assign'){const v=t.value===''?null:+t.value;rpc('assign_driver',{oid:t.dataset.id,drv:v==null?null:S.drivers[v].id}).then(r=>{if(!r.error&&v!=null)toast('Pedido destinado a '+S.settings.drivers[v])})}});
@@ -556,7 +575,7 @@ function openLogin(next){
         if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.';btn.disabled=false;return}}
       else r=await sb.auth.signInWithPassword({email:em,password:pw});
       if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':r.error.message;btn.disabled=false;return}
-      applyUser(r.data.user);closeSheet();toast('Olá, '+cust.name.split(' ')[0]+'!');render();if(next==='checkout')openCheckout()});
+      applyUser(r.data.user);closeSheet();toast('Olá, '+cust.name.split(' ')[0]+'!');render();if(next==='checkout')openCheckout();else if(next==='group')createGroup()});
     const f=$('#cl-name',sh)||$('#cl-mail',sh);f.focus({preventScroll:true})});
 }
 let staffMode='in',staffWho='loja',motoList=null;
@@ -652,6 +671,132 @@ function renderMoto(){
   $('#moto').innerHTML=h;bindDrv();
 }
 
+/* ------------------------------ finalizados ------------------------------ */
+const isToday=t=>!!t&&new Date(t).toDateString()===new Date().toDateString();
+const doneAt=o=>{const h=(o.history||[]).filter(x=>x.s===o.status).pop();return h?h.t:o.createdAt};
+function groupPeople(o){const m=new Map();(o.items||[]).forEach(it=>{if(!it.person)return;m.set(it.person,(m.get(it.person)||0)+it.unit*it.qty)});return [...m].map(([person,sub])=>({person,sub}))}
+function finishedHtml(os){
+  const done=os.filter(o=>o.status==='entregue'||o.status==='cancelado').sort((a,b)=>doneAt(b)-doneAt(a));
+  if(!done.length)return '';
+  const td=done.filter(o=>isToday(doneAt(o))),old=done.length-td.length;
+  return `<section class="col fin" style="grid-column:1/-1"><h3>Finalizados <span class="badge" style="margin-left:0">${done.length}</span><button class="btn sm ghost danger" data-act="ohideall" style="margin-left:auto">Excluir todos</button></h3>
+   <div class="mini" style="padding:0 4px">${td.length} hoje${old?` · ${old} de dias anteriores`:''}. Toque em um pedido para conferir.</div>
+   <div class="fingrid">${done.slice(0,60).map(o=>`<article class="o fin-o"><button class="fin-open" data-act="odetail" data-id="${o.id}" aria-label="Ver pedido #${o.code}"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${o.status==='entregue'&&o.mode==='retirada'?'Retirado':STATUS[o.status]}</span></div>
+     <div class="mini">${esc(o.customer.name)} · ${o.mode==='retirada'?'Retirada':esc(o.addr.bairro)} · ${hhmm(doneAt(o))}${isToday(doneAt(o))?'':' · '+new Date(doneAt(o)).toLocaleDateString('pt-BR')}</div>
+     <div class="fin-row"><b>${money(o.total)}</b><span class="mini">${o.items.reduce((a,it)=>a+it.qty,0)} itens${o.grp?' · 👥 grupo':''}</span></div></button>
+     <button class="btn sm ghost danger" data-act="ohide" data-id="${o.id}">Excluir</button></article>`).join('')}</div></section>`}
+function confirmTap(b,txt){if(b.dataset.ok)return true;b.dataset.ok=1;const old=b.textContent;b.textContent=txt||'Toque de novo para confirmar';b.classList.add('confirm');setTimeout(()=>{if(b.isConnected){delete b.dataset.ok;b.textContent=old;b.classList.remove('confirm')}},4000);return false}
+async function hideOrder(b,id){if(!confirmTap(b,'Confirmar exclusão'))return;const{error}=await sb.rpc('order_hide',{oid:id});if(error){dbFail(error);return}delete S.orders[id];S.rows=S.rows.filter(r=>r.id!==id);closeSheetIfOrder(id);toast('Pedido excluído');emit()}
+async function hideAllFinished(b){if(!confirmTap(b,'Toque de novo para excluir todos'))return;const{data,error}=await sb.rpc('orders_hide_finished');if(error){dbFail(error);return}toast((data||0)+' pedidos finalizados excluídos');await loadOrders()}
+function closeSheetIfOrder(id){const d=$('#odet');if(d&&d.dataset.id===id)closeSheet()}
+function openOrderDetail(id){const o=S.orders[id];if(!o)return;
+  const dn=S.settings.drivers,PK=o.mode==='retirada',fin=o.status==='entregue'||o.status==='cancelado';
+  const tl=(o.history||[]).map(x=>`<li><b>${x.s==='entregue'&&PK?'Retirado':STATUS[x.s]||x.s}</b><span class="mini">${new Date(x.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></li>`).join('');
+  const ppl=groupPeople(o),fs=ppl.length?o.fee/ppl.length:0;
+  openSheet(`<div class="hd" id="odet" data-id="${o.id}"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido #${o.code}</h2><span class="pill ${o.status==='cancelado'?'closed':fin?'':'warn'}">${PK&&o.status==='entregue'?'Retirado':STATUS[o.status]}</span></div>
+  <div class="bd">
+   <div class="card dgrid"><div><div class="lbl">Cliente</div><b>${esc(o.customer.name)}</b><div class="mini">${esc(fmtPhone(o.customer.phone))}</div></div>
+    <div><div class="lbl">${PK?'Retirada':'Entrega'}</div>${PK?'<b>🏪 Retirada no local</b>':`<b>${esc(o.addr.street)}, ${esc(o.addr.number)}</b><div class="mini">${esc(o.addr.bairro)}${o.addr.comp?' · '+esc(o.addr.comp):''}${o.addr.cep?' · CEP '+esc(o.addr.cep):''}</div>`}</div>
+    <div><div class="lbl">Pagamento</div>${payBadge(o)}</div>
+    ${!PK&&o.driver!=null?`<div><div class="lbl">Motoboy</div><b>🛵 ${esc(dn[o.driver]||'Motoboy')}</b></div>`:''}</div>
+   <div><div class="lbl">Itens${ppl.length?' · 👥 pedido em grupo':''}</div>${itemsHtml(o)}</div>
+   ${ppl.length>1?`<div><div class="lbl">Quanto cada um paga</div>${ppl.map(p=>`<div class="line" style="padding:8px 0"><span>${esc(p.person)}</span><b>${money(p.sub+fs)}</b></div>`).join('')}</div>`:''}
+   <div class="sum"><div><span>Subtotal</span><span>${money(o.subtotal)}</span></div><div><span>${PK?'Retirada':'Taxa de entrega'}</span><span>${PK?'Grátis':money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
+   <div><div class="lbl">Linha do tempo</div><ul class="tl">${tl}</ul></div>
+   <a class="btn ok" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>
+   ${fin?`<button class="btn ghost danger" data-act="ohide" data-id="${o.id}">Excluir pedido</button>`:''}
+  </div>`)}
+
+/* ------------------------------ cardápio: novo item ------------------------------ */
+const slug=t=>t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||'item';
+function renderNewItemForm(){const f=$('#niF');if(!f||f.dataset.ready)return;f.dataset.ready=1;
+  $('#ni-cat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');$('#ni-cat').value='Lanches';
+  f.addEventListener('submit',async e=>{e.preventDefault();const btn=$('button[type=submit]',f),err=$('#ni-e');err.textContent='';
+    const name=$('#ni-name').value.trim(),cat=$('#ni-cat').value,desc=$('#ni-desc').value.trim(),opts=$('#ni-opts').checked;
+    const price=Math.round(parseFloat($('#ni-price').value.replace(/\./g,'').replace(',','.'))*100)/100;
+    if(name.length<2){err.textContent='Informe o nome do item.';return}
+    if(!(price>0&&price<1000)){err.textContent='Informe um preço válido, por exemplo 24,90.';return}
+    if(MENU.some(p=>p.name.toLowerCase()===name.toLowerCase())){err.textContent='Já existe um item com esse nome.';return}
+    btn.disabled=true;const id=slug(name)+'-'+Math.random().toString(36).slice(2,6);
+    const sort=MENU.length?Math.max(...MENU.map((p,i)=>p.sort!=null?p.sort:i))+1:0;
+    const{error}=await sb.from('products').insert({id,cat,name,price,descr:desc,opts,sold_out:false,sort});
+    btn.disabled=false;if(error){dbFail(error);return}
+    f.reset();$('#ni-cat').value='Lanches';toast(name+' adicionado ao cardápio');await loadCatalog();
+    const r=$('#pr-'+id);if(r)r.closest('.mrow').scrollIntoView({behavior:'smooth',block:'center'})});
+}
+async function removeProduct(b,id){const p=P[id];if(!confirmTap(b,'Confirmar'))return;
+  const{error}=await sb.from('products').delete().eq('id',id);if(error){dbFail(error);return}
+  toast((p?p.name:'Item')+' removido do cardápio');await loadCatalog()}
+
+/* ------------------------------ pedido em grupo ------------------------------ */
+const GRP={code:null,person:'',tokens:{},data:null,sig:''};
+(function(){const g=LS.get('lb_grp',null);if(g&&g.code){GRP.code=g.code;GRP.person=g.person||'';GRP.tokens=g.tokens||{}}})();
+const saveGrp=()=>LS.set('lb_grp',GRP.code?{code:GRP.code,person:GRP.person,tokens:GRP.tokens}:null);
+const groupActive=()=>!!(GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
+const groupLink=()=>location.origin+location.pathname+'#grupo/'+GRP.code;
+const grpSub=g=>(g.items||[]).reduce((a,it)=>a+(+it.total),0);
+function clearGroup(){GRP.code=null;GRP.person='';GRP.tokens={};GRP.data=null;GRP.sig='';saveGrp();emit()}
+async function refreshGroup(){if(!GRP.code)return;const{data,error}=await sb.rpc('group_get',{c:GRP.code});if(error)return;
+  if(!data){toast('Este pedido em grupo não existe mais');clearGroup();return}
+  const prev=GRP.data;GRP.data=data;const sig=JSON.stringify(data);const changed=sig!==GRP.sig;GRP.sig=sig;
+  if(data.status!=='aberto'&&!data.is_owner){const m=data.status==='fechado'?`${data.owner_name} enviou o pedido em grupo${data.order_code?' (#'+data.order_code+')':''}. Bom apetite! 🍔`:data.status==='cancelado'?`${data.owner_name} cancelou o pedido em grupo.`:'Este pedido em grupo expirou.';
+    if(!prev||prev.status==='aberto')toast(m);clearGroup();if($('#grp'))closeSheet();return}
+  if(data.status!=='aberto'&&data.is_owner&&data.status!=='fechado'){toast(data.status==='expirado'?'Seu pedido em grupo expirou.':'Pedido em grupo cancelado.');clearGroup();if($('#grp'))closeSheet();return}
+  if(changed){emit();if($('#grp'))renderGroupSheet()}}
+setInterval(()=>{if(GRP.code&&document.visibilityState==='visible')refreshGroup()},4000);
+async function createGroup(){if(!cust){openLogin('group');return}
+  if(groupActive()){openGroup();return}
+  const{data,error}=await sb.rpc('group_create',{nm:cust.name});if(error){dbFail(error);return}
+  GRP.code=data;GRP.person=cust.name;GRP.tokens={};GRP.data=null;GRP.sig='';saveGrp();await refreshGroup();
+  openGroup();toast('Grupo criado! Agora compartilhe o link com a turma')}
+async function joinGroup(code){
+  const{data,error}=await sb.rpc('group_get',{c:code});
+  if(error||!data){toast('Link de pedido em grupo inválido');return}
+  if(data.status!=='aberto'){openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div><div class="bd"><div class="empty">${data.status==='fechado'?`${esc(data.owner_name)} já enviou este pedido${data.order_code?' (#'+data.order_code+')':''}.`:data.status==='cancelado'?'Este pedido em grupo foi cancelado.':'Este pedido em grupo expirou.'}</div><button class="btn" data-act="close">Ver o cardápio</button></div>`);return}
+  if(GRP.code!==code){GRP.code=code;GRP.tokens={};GRP.person=''}
+  GRP.data=data;GRP.sig=JSON.stringify(data);saveGrp();
+  if(!GRP.person){if(data.is_owner&&cust)GRP.person=cust.name;else{askGroupName();return}}
+  saveGrp();emit();openGroup()}
+function askGroupName(){const d=GRP.data;if(!d)return;
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div>
+  <form class="bd" id="gnF" novalidate><div class="card gcard"><div class="gicon">👥</div><div><b>${esc(d.owner_name)} te chamou para um pedido em grupo</b><div class="mini">Cada um escolhe o seu lanche e ${esc(d.owner_name.split(' ')[0])} envia tudo junto, numa entrega só.</div></div></div>
+  <div class="f"><label for="gn">Seu nome</label><input id="gn" maxlength="30" autocomplete="given-name" value="${esc(GRP.person||(cust?cust.name:''))}" placeholder="Como os amigos te chamam"><div class="err" id="gn-e"></div></div>
+  <button class="btn" type="submit">Entrar no grupo e escolher meu lanche</button></form>`,sh=>{
+    const i=$('#gn',sh);i.focus();
+    $('#gnF',sh).addEventListener('submit',e=>{e.preventDefault();const v=i.value.trim();if(v.length<2){$('#gn-e',sh).textContent='Informe seu nome.';return}
+      GRP.person=v;saveGrp();closeSheet();emit();toast('Escolha seus lanches e toque em "Adicionar ao grupo"')})})}
+function groupDockBtn(){const d=GRP.data,n=(d.items||[]).reduce((a,it)=>a+it.qty,0);
+  return `<button class="btn grow gbtn" data-act="gopen"><span><span class="cnt">${n}</span>👥 Grupo de ${esc(d.owner_name.split(' ')[0])}</span><b>${money(grpSub(d))}</b></button>`}
+function renderGroupBar(){const el=$('#grpBar');if(!el)return;
+  if(groupActive()){const d=GRP.data,ppl=new Set(d.items.map(it=>it.person)).size;
+    el.innerHTML=`<div class="gbar on"><div class="gicon">👥</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
+  else el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
+function openGroup(){if(!GRP.data){refreshGroup().then(()=>{if(GRP.data)openGroup()});return}
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar ao cardápio">${BACKSVG}<span>Cardápio</span></button><h2>Pedido em grupo</h2></div><div class="bd" id="grp"></div>`);renderGroupSheet()}
+function renderGroupSheet(){const el=$('#grp');if(!el||!GRP.data)return;const d=GRP.data,own=!!d.is_owner;
+  const by=new Map();d.items.forEach(it=>{if(!by.has(it.person))by.set(it.person,[]);by.get(it.person).push(it)});
+  const people=[...by];const total=grpSub(d),exp=hhmm(Date.parse(d.expires_at));
+  el.innerHTML=`<div class="card gcard"><div class="gicon">👥</div><div style="min-width:0"><b>Grupo de ${esc(d.owner_name)}</b><div class="mini">Código ${esc(d.code)} · aberto até ${exp} · você: ${esc(GRP.person)} <button class="linkbtn" data-act="gname">trocar</button></div></div></div>
+   <div class="gshare"><button class="btn ok" data-act="gshare">Chamar a turma no WhatsApp</button><button class="btn ghost" data-act="gcopy">Copiar link</button></div>
+   ${people.length?people.map(([p,its])=>{const sub=its.reduce((a,it)=>a+(+it.total),0);return `<div class="gperson"><div class="gph"><b>👤 ${esc(p)}${p===GRP.person?' <span class="mini">(você)</span>':''}</b><b>${money(sub)}</b></div>
+     ${its.map(it=>{const can=own||GRP.tokens[it.id];return `<div class="gitem${it.ok?'':' bad'}"><div style="min-width:0"><span>${it.qty}× ${esc(it.name)}</span>${(it.extras&&it.extras.length)||(it.removed&&it.removed.length)||it.note?`<small>${it.extras.length?'+ '+esc(it.extras.join(', '))+' ':''}${it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}${it.ok?'':'<small class="err">Indisponível no momento</small>'}</div><span class="gtot">${money(+it.total)}</span>${can?`<button class="x" data-act="grm" data-item="${it.id}" aria-label="Remover ${esc(it.name)}">×</button>`:''}</div>`}).join('')}</div>`}).join(''):`<div class="empty">Ninguém escolheu ainda. Toque em "Cardápio", escolha seu lanche e use "Adicionar ao grupo".</div>`}
+   <div class="sum"><div><span>${people.length} ${people.length===1?'pessoa':'pessoas'} · ${(n=>n+(n===1?' item':' itens'))(d.items.reduce((a,it)=>a+it.qty,0))}</span><span>${money(total)}</span></div><div class="mini">A taxa de entrega é calculada no envio e dividida igualmente entre todos.</div><div class="tot"><span>Subtotal</span><span>${money(total)}</span></div></div>
+   <button class="btn ghost" data-act="close">+ Adicionar mais lanches</button>
+   ${own?`<button class="btn" data-act="gclose" ${d.items.length&&S.settings.open&&d.items.every(it=>it.ok)?'':'disabled'}>${!S.settings.open?'Loja fechada no momento':d.items.every(it=>it.ok)?'Fechar e enviar pedido':'Remova os itens indisponíveis'}</button><button class="btn ghost danger" data-act="gcancel">Cancelar pedido em grupo</button>`:`<div class="mini" style="text-align:center">${esc(d.owner_name.split(' ')[0])} envia o pedido quando todos tiverem escolhido.</div><button class="btn ghost" data-act="gleave">Sair do grupo</button>`}`}
+async function groupAdd(btn,pid,qty,exs,rms,note){btn.disabled=true;
+  const{data,error}=await sb.rpc('group_add',{c:GRP.code,person:GRP.person,pid,qty,extras:exs,removed:rms,note});
+  btn.disabled=false;if(error){dbFail(error);return}
+  GRP.tokens[data.id]=data.token;saveGrp();closeSheet();toast('Adicionado ao grupo');await refreshGroup()}
+async function groupRemove(item){const{error}=await sb.rpc('group_remove',{c:GRP.code,item,tok:GRP.tokens[item]||''});if(error){dbFail(error);return}
+  delete GRP.tokens[item];saveGrp();await refreshGroup();renderGroupSheet()}
+function shareGroup(){const d=GRP.data;const msg=`🍔 Bora pedir Lanches do Boy juntos? Entra no meu pedido em grupo, escolhe o seu lanche que eu envio tudo numa entrega só:\n${groupLink()}`;
+  if(navigator.share){navigator.share({title:'Pedido em grupo · Lanches do Boy',text:msg}).catch(()=>{})}else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}
+async function cancelGroup(b){if(!confirmTap(b,'Toque de novo para cancelar o grupo'))return;const{error}=await sb.rpc('group_cancel',{c:GRP.code});if(error){dbFail(error);return}clearGroup();closeSheet();toast('Pedido em grupo cancelado')}
+function leaveGroup(){clearGroup();closeSheet();toast('Você saiu do pedido em grupo')}
+function checkGroupHash(){const m=(location.hash||'').match(/^#grupo\/([A-Za-z0-9]{5,10})$/);if(!m)return false;
+  history.replaceState(null,'',location.pathname+location.search+'#cliente');joinGroup(m[1].toUpperCase());return true}
+window.addEventListener('hashchange',()=>{checkGroupHash()});
+
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
 S.loc=S.loc||{};const maps={};
@@ -703,5 +848,5 @@ function syncGeo(){const need=!!(sess&&(isMoto()||isLoja())&&S.user&&Object.valu
   else if(!need&&watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
 
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
-initData().then(()=>{loadEta();loadStorePos()});render();{const b=document.getElementById('boot');if(b)b.remove()}
+initData().then(()=>{loadEta();loadStorePos();if(!checkGroupHash()&&GRP.code)refreshGroup();renderNewItemForm()});render();{const b=document.getElementById('boot');if(b)b.remove()}
 })();

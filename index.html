@@ -129,6 +129,50 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 .trkmap{height:230px;border-radius:12px;overflow:hidden;background:var(--surface);position:relative;z-index:0;isolation:isolate}
 .mk{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:18px;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)}
 .pr-ed{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}.pr-ed span{font-weight:700;font-size:13px}.pr-ed input{width:92px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:7px 9px;font:inherit;font-weight:700}
+
+/* logo 3D */
+.logo{position:relative;overflow:hidden;transform-style:preserve-3d;box-shadow:0 1px 0 #9e1a13,0 2px 0 #8c160f,0 3px 0 #7a130d,0 4px 0 #68100b,0 7px 12px rgba(0,0,0,.38)!important}
+.logo::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.55),rgba(255,255,255,0) 46%),linear-gradient(160deg,rgba(255,255,255,.18),rgba(0,0,0,.22));pointer-events:none}
+.seal3d{position:relative;max-width:210px;margin:0 auto;perspective:700px}
+.seal3d .seal{transform:rotateY(-16deg) rotateX(6deg);filter:drop-shadow(1px 1px 0 #9e1a13) drop-shadow(1px 1px 0 #8c160f) drop-shadow(1px 1px 0 #7a130d) drop-shadow(1px 1px 0 #68100b) drop-shadow(2px 2px 0 #560d09) drop-shadow(0 18px 18px rgba(0,0,0,.45))}
+.seal3d .shine{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.38) 45%,transparent 58%);mix-blend-mode:screen;transform:rotateY(-16deg) rotateX(6deg);background-size:250% 100%;background-position:120% 0}
+@media (prefers-reduced-motion:no-preference){
+  .logo{animation:logo3d 7s ease-in-out infinite}
+  @keyframes logo3d{0%,100%{transform:perspective(220px) rotateY(-16deg) rotateX(5deg)}50%{transform:perspective(220px) rotateY(16deg) rotateX(-3deg)}}
+  .seal3d .seal,.seal3d .shine{animation:seal3d 6s ease-in-out infinite}
+  .seal3d .shine{animation:seal3d 6s ease-in-out infinite,shine 6s ease-in-out infinite}
+  @keyframes seal3d{0%,100%{transform:rotateY(-18deg) rotateX(7deg) translateY(0)}50%{transform:rotateY(14deg) rotateX(-4deg) translateY(-6px)}}
+  @keyframes shine{0%,30%{background-position:120% 0}60%,100%{background-position:-60% 0}}
+}
+/* pedido em grupo */
+.gbar{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;border:1.5px dashed color-mix(in srgb,var(--brand) 45%,var(--line));background:var(--surface);border-radius:var(--r3);padding:12px 14px;box-shadow:var(--sh1);color:var(--ink);text-align:left}
+.gbar.on{border-style:solid;border-color:var(--brand);background:var(--brand-soft)}
+.gbar .go{color:var(--brand);font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:2px}
+.gicon{width:42px;height:42px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:20px;flex:none}
+.gcard{display:flex;gap:12px;align-items:center;background:var(--brand-soft);border-color:transparent}
+.gshare{display:grid;grid-template-columns:1.4fr 1fr;gap:8px}
+.gperson{border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;background:var(--surface)}
+.gph{display:flex;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line2);margin-bottom:4px}
+.gitem{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:6px 0}
+.gitem small{display:block;color:var(--muted);font-size:12px}.gitem.bad span{text-decoration:line-through}
+.gitem .x{width:32px;height:32px;font-size:18px}.gtot{font-weight:700;font-variant-numeric:tabular-nums}
+.linkbtn{border:0;background:none;color:var(--brand);font-weight:800;padding:0;font-size:12px;text-decoration:underline}
+.who{display:inline-block;background:var(--info-soft);color:var(--info);border-radius:6px;padding:0 6px;font-size:11.5px;font-weight:800;margin-left:4px}
+/* finalizados e detalhe */
+.fingrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.fin-o{padding:0;gap:0;overflow:hidden}
+.fin-open{border:0;background:none;text-align:left;padding:12px 13px 8px;display:grid;gap:6px;color:var(--ink);width:100%}
+.fin-open:active{background:var(--surface2)}
+.fin-o>.btn{margin:0 10px 10px;justify-self:start}
+.fin-row{display:flex;justify-content:space-between;align-items:baseline}
+.btn.danger{color:var(--crit)}.btn.confirm{background:var(--crit)!important;color:#fff!important;border-color:var(--crit)!important}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line);display:grid;gap:8px}
+.tl li{position:relative;display:flex;justify-content:space-between;gap:10px}
+.tl li::before{content:"";position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--brand)}
+/* novo item */
+.newitem{display:grid;gap:12px;background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r2);padding:14px}
+.newitem .opt.w{grid-column:1/-1}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -256,6 +300,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       <div class="art" id="heroArt"></div>
     </div>
     <div class="infocard"><div class="facts"><div><small>Status</small><span class="pill" id="openPill"><i></i><span>Aberta</span></span></div><div><small>Entrega</small><b id="etaTxt">40 a 55 min</b></div><div><small>Taxa</small><b id="feeMin">a partir de R$ 4</b></div></div><button type="button" class="addr" data-act="where" aria-label="Como chegar: ver o endereço no Google Maps ou Waze"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="at">Avenida João XXIII, 439, Belo Horizonte, Brasil</span><span class="go">Como chegar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button></div>
+    <div id="grpBar"></div>
     <label class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Busque um produto" autocomplete="off" aria-label="Buscar produto"></label>
     <div class="chips" id="chips"></div>
     <div id="menu"></div>
@@ -266,7 +311,20 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
     <div class="stats" id="stats"></div>
     <div class="chips" style="margin:-4px 0 12px"><button class="chip" data-k="cardapioPanel">🍔 Cardápio e preços</button><button class="chip" data-k="ajustesPanel">⚙️ Ajustes da loja</button><button class="chip" data-k="equipePanel">🛵 Equipe e motoboys</button></div>
     <div class="board" id="board"></div>
-    <details class="panel" id="cardapioPanel"><summary>Cardápio: preços, fotos e esgotados</summary><div class="in"><p class="mini" style="margin:0">Altere o preço e toque em "Salvar preço": o novo valor vale na hora para os próximos pedidos. Em Foto, escolha a imagem do celular. Em Disponível/Esgotado, pause um item.</p><div id="menuAdmin"></div></div></details>
+    <details class="panel" id="cardapioPanel"><summary>Cardápio: preços, fotos e esgotados</summary><div class="in"><p class="mini" style="margin:0">Altere o preço e toque em "Salvar preço": o novo valor vale na hora para os próximos pedidos. Em Foto, escolha a imagem do celular. Em Disponível/Esgotado, pause um item.</p><form id="niF" class="newitem" novalidate>
+      <b class="d" style="font-size:18px">Adicionar item ao cardápio</b>
+      <div class="g2">
+        <div class="f w"><label for="ni-name">Nome do item</label><input id="ni-name" maxlength="60" placeholder="Ex.: X-Picanha"></div>
+        <div class="f"><label for="ni-cat">Categoria</label><select id="ni-cat"></select></div>
+        <div class="f"><label for="ni-price">Preço (R$)</label><input id="ni-price" inputmode="decimal" placeholder="24,90"></div>
+        <div class="f w"><label for="ni-desc">Descrição</label><textarea id="ni-desc" rows="2" maxlength="240" placeholder="Pão, hambúrguer, queijo, alface, tomate..."></textarea></div>
+        <label class="opt w"><span>Lanche com adicionais e opção de retirar ingredientes</span><input type="checkbox" id="ni-opts" checked></label>
+      </div>
+      <div class="err" id="ni-e" role="alert"></div>
+      <button class="btn" type="submit">Adicionar ao cardápio</button>
+      <p class="mini" style="margin:0">O item aparece na hora para os clientes. Depois é só tocar em Foto para colocar a imagem.</p>
+    </form>
+    <div id="menuAdmin"></div></div></details>
     <details class="panel" id="ajustesPanel"><summary>Ajustes da loja</summary><div class="in">
       <div class="g2">
         <div class="f"><label for="s-pix">Chave Pix</label><input id="s-pix" placeholder="CNPJ, telefone ou e-mail"></div>
