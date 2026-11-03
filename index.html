@@ -43,6 +43,8 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 
 /* cabeçalho */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:12px 0 12px}
+.top{transition:transform .28s ease,box-shadow .2s}.top.hide{transform:translateY(calc(-100% - 12px));box-shadow:none}
+.sec,.hero,#v-cozinha details.panel{scroll-margin-top:96px}
 .top header{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
 .top .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .brandmark{display:flex;align-items:center;gap:11px;flex:none}

@@ -732,7 +732,7 @@ async function removeProduct(b,id){const p=P[id];if(!confirmTap(b,'Confirmar'))r
 const GRP={code:null,person:'',tokens:{},data:null,sig:''};
 (function(){const g=LS.get('lb_grp',null);if(g&&g.code){GRP.code=g.code;GRP.person=g.person||'';GRP.tokens=g.tokens||{}}})();
 const saveGrp=()=>LS.set('lb_grp',GRP.code?{code:GRP.code,person:GRP.person,tokens:GRP.tokens}:null);
-const groupActive=()=>!!(GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
+const groupActive=()=>!!(!sess&&GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
 const groupLink=()=>location.origin+location.pathname+'#grupo/'+GRP.code;
 const grpSub=g=>(g.items||[]).reduce((a,it)=>a+(+it.total),0);
 function clearGroup(){GRP.code=null;GRP.person='';GRP.tokens={};GRP.data=null;GRP.sig='';saveGrp();emit()}
@@ -767,7 +767,7 @@ function askGroupName(){const d=GRP.data;if(!d)return;
       GRP.person=v;saveGrp();closeSheet();emit();toast('Escolha seus lanches e toque em "Adicionar ao grupo"')})})}
 function groupDockBtn(){const d=GRP.data,n=(d.items||[]).reduce((a,it)=>a+it.qty,0);
   return `<button class="btn grow gbtn" data-act="gopen"><span><span class="cnt">${n}</span>👥 Grupo de ${esc(d.owner_name.split(' ')[0])}</span><b>${money(grpSub(d))}</b></button>`}
-function renderGroupBar(){const el=$('#grpBar');if(!el)return;
+function renderGroupBar(){const el=$('#grpBar');if(!el)return;if(sess){el.innerHTML='';return}
   if(groupActive()){const d=GRP.data,ppl=new Set(d.items.map(it=>it.person)).size;
     el.innerHTML=`<div class="gbar on"><div class="gicon">👥</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
   else el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
@@ -796,6 +796,11 @@ function leaveGroup(){clearGroup();closeSheet();toast('Você saiu do pedido em g
 function checkGroupHash(){const m=(location.hash||'').match(/^#grupo\/([A-Za-z0-9]{5,10})$/);if(!m)return false;
   history.replaceState(null,'',location.pathname+location.search+'#cliente');joinGroup(m[1].toUpperCase());return true}
 window.addEventListener('hashchange',()=>{checkGroupHash()});
+/* cabeçalho some ao rolar para baixo e volta ao rolar para cima */
+(function(){const top=$('#chrome');let last=window.scrollY,tk=false;
+  window.addEventListener('scroll',()=>{if(tk)return;tk=true;requestAnimationFrame(()=>{const y=window.scrollY;
+    if(y>last+6&&y>80)top.classList.add('hide');else if(y<last-6||y<=80)top.classList.remove('hide');last=y;tk=false})},{passive:true});
+  window.addEventListener('hashchange',()=>top.classList.remove('hide'))})();
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
