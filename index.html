@@ -175,6 +175,12 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 /* novo item */
 .newitem{display:grid;gap:12px;background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r2);padding:14px}
 .newitem .opt.w{grid-column:1/-1}
+/* pix */
+.pixbox{display:grid;gap:10px;border:1.5px solid color-mix(in srgb,#32BCAD 55%,var(--line));background:color-mix(in srgb,#32BCAD 8%,var(--surface));border-radius:var(--r2);padding:14px;margin-top:10px}
+.pixhd{display:flex;gap:12px;align-items:center}.pixlogo{background:#32BCAD;color:#fff;font-weight:900;font-size:13px;letter-spacing:.06em;border-radius:8px;padding:6px 8px;flex:none}
+.pixqr{display:grid;place-items:center}.pixqr img{width:220px;height:220px;max-width:100%;image-rendering:pixelated;background:#fff;border-radius:12px;padding:6px}
+.pixqr:empty{display:none}.pixprev{display:grid;gap:8px;justify-items:start;margin-top:8px}.pixprev .pixqr img{width:150px;height:150px}
+.ok-t{color:var(--ok)}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -329,7 +335,11 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
     <div id="menuAdmin"></div></div></details>
     <details class="panel" id="ajustesPanel"><summary>Ajustes da loja</summary><div class="in">
       <div class="g2">
-        <div class="f"><label for="s-pix">Chave Pix</label><input id="s-pix" placeholder="CNPJ, telefone ou e-mail"></div>
+        <div class="f"><label for="s-pixtype">Tipo da chave Pix</label><select id="s-pixtype"><option value="cnpj">CNPJ</option><option value="cpf">CPF</option><option value="telefone">Telefone</option><option value="email">E-mail</option><option value="aleatoria">Chave aleatória</option></select></div>
+        <div class="f"><label for="s-pix">Chave Pix</label><input id="s-pix" autocapitalize="none" placeholder="Digite a chave"></div>
+        <div class="f"><label for="s-pixname">Nome do recebedor (como no banco)</label><input id="s-pixname" maxlength="25" placeholder="LANCHES DO BOY"></div>
+        <div class="f"><label for="s-pixcity">Cidade</label><input id="s-pixcity" maxlength="15" placeholder="BELO HORIZONTE"></div>
+        <div class="f w"><div id="s-pixmsg" class="mini"></div><div id="s-pixprev" class="pixprev"></div></div>
         <div class="f"><label for="s-wa">WhatsApp da loja</label><input id="s-wa" inputmode="tel" maxlength="15" placeholder="(31) 99999-9999"></div>
         <div class="f"><label for="s-fee">Taxa de entrega padrão (R$)</label><input id="s-fee" inputmode="decimal" placeholder="8,00"></div>
       </div>

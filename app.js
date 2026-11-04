@@ -63,11 +63,12 @@ function openSent(o){
   const msg=orderMsg(o);const store=digits(S.settings.wa);
   const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Pedido enviado</h2></div><div class="bd">
   <div class="card" style="background:var(--ok-soft);border-color:transparent"><b style="color:var(--ok)">Pedido recebido pela hamburgueria!</b><div class="mini" style="color:var(--ok)">Guarde o resumo no seu WhatsApp para acompanhar.</div></div>
+  ${o.pay.method==='pix'?pixBox(o):''}
   <div class="wamsg"><pre>${esc(msg)}</pre></div>
   <a class="btn ok" target="_blank" rel="noopener" href="${waLink(store?S.settings.wa:o.customer.phone,msg)}">Enviar resumo pelo WhatsApp</a>
   <button class="btn ghost" data-act="copy" data-t="${esc(msg)}">Copiar mensagem</button>
   <button class="btn dark" data-act="track">Acompanhar meu pedido</button></div>`;
-  openSheet(html);
+  openSheet(html,()=>renderPixQRs());
 }
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
 function copy(txt){return (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Copiado')).catch(()=>toast('Selecione e copie o texto manualmente'))}
@@ -181,7 +182,7 @@ const heroBurger=()=>burger(['patty','bacon','egg','cheese','lettuce','tomato'],
 /* ------------------------------ Supabase ------------------------------ */
 const SB_URL='https://dvrupqsedmgqpfmoyivm.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2cnVwcXNlZG1ncXBmbW95aXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NTg1NTYsImV4cCI6MjEwOTAzNDU1Nn0.t3sVs6P1mLmaQy6WEodAeoGxtQmD5eFldzXO2LOzgxo';
 const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-const S={orders:{},rows:[],settings:{open:true,pix:'',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
+const S={orders:{},rows:[],settings:{open:true,pix:'',pixType:'cnpj',pixName:'LANCHES DO BOY',pixCity:'BELO HORIZONTE',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
 const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega',grp:r.group_id||null}};
@@ -209,19 +210,19 @@ async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();retur
   rebuildOrders()}
 function setList(arr,items){arr.length=0;items.forEach(x=>arr.push(x))}
 async function loadCatalog(){
-  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
+  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
   if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||''})));
     Object.keys(P).forEach(k=>delete P[k]);MENU.forEach(m=>P[m.id]=m);
     const so={};p.data.forEach(r=>{if(r.sold_out)so[r.id]=true});S.settings.soldOut=so}
   if(e.data){const by=k=>e.data.filter(x=>x.set_id===k).map(x=>({id:x.id,n:x.name,p:+x.price}));
     setList(EXTRAS,by('default'));setList(EXTRAS_MAC,by('mac'));setList(EXTRAS_MISTO,by('misto'));setList(EXTRAS_OMELETE,by('omelete'))}
   if(z.data&&z.data.length){setList(BAIRROS,z.data.map(r=>({n:r.bairro,fee:+r.fee,lat:r.lat,lng:r.lng})));Object.keys(BM).forEach(k=>delete BM[k]);BAIRROS.forEach(b=>BM[b.n]=b)}
-  if(st.data){S.settings.open=st.data.open;S.settings.pix=st.data.pix||'';S.settings.wa=st.data.wa||'';S.settings.feeDefault=+st.data.fee_default}
+  if(st.data){S.settings.open=st.data.open;S.settings.pix=st.data.pix||'';S.settings.pixType=st.data.pix_type||'cnpj';S.settings.pixName=st.data.pix_name||'LANCHES DO BOY';S.settings.pixCity=st.data.pix_city||'BELO HORIZONTE';S.settings.wa=st.data.wa||'';S.settings.feeDefault=+st.data.fee_default}
   if(ph.data){const m={};ph.data.forEach(r=>m[r.product_id]=r.data);S.photos=m}
   emit()}
 async function saveOrder(){}
 async function removeOrder(){}
-async function saveSettings(){emit();const{error}=await sb.from('store_settings').update({open:S.settings.open,pix:S.settings.pix,wa:S.settings.wa,fee_default:S.settings.feeDefault}).eq('id',1);if(error)dbFail(error)}
+async function saveSettings(){emit();const{error}=await sb.from('store_settings').update({open:S.settings.open,pix:S.settings.pix,pix_type:S.settings.pixType,pix_name:S.settings.pixName,pix_city:S.settings.pixCity,wa:S.settings.wa,fee_default:S.settings.feeDefault}).eq('id',1);if(error)dbFail(error)}
 async function savePhoto(id,img){S.photos[id]=img;emit();const{error}=await sb.from('photos').upsert({product_id:id,data:img});if(error)dbFail(error)}
 async function savePrice(id){const inp=$('#pr-'+id);if(!inp)return;const v=Math.round(parseFloat(inp.value.replace(/\./g,'').replace(',','.'))*100)/100;
   if(!(v>0&&v<1000)){toast('Preço inválido. Use por exemplo 22,90');return}
@@ -472,7 +473,7 @@ function renderTrackBase(){
     ${can?'<p class="mini">A hamburgueria não pôde aceitar este pedido. Chame no WhatsApp da loja.</p>':`<div class="steps" style="grid-template-columns:repeat(${lab.length},1fr)">${lab.map((l,k)=>`<div class="${k<=i?'on':''}">${l}</div>`).join('')}</div>`}
     ${can?'':trackExtra(o)}<ul style="margin:8px 0;padding-left:18px">${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}</li>`).join('')}</ul>
     <div class="sum"><div><span>${PK?'Retirada no local':'Entrega em '+esc(o.addr.bairro)}</span><span>${PK?'Grátis':money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
-    ${o.pay.method==='pix'&&!o.pixPaid&&!can?`<div style="margin-top:10px"><div class="lbl">Pague com Pix e avise a loja</div>${S.settings.pix?`<div class="copy"><span style="flex:1">${esc(S.settings.pix)}</span><button class="btn sm dark" data-act="copy" data-t="${esc(S.settings.pix)}">Copiar</button></div>`:'<div class="mini">A chave Pix será enviada pela loja no WhatsApp.</div>'}</div>`:''}
+    ${o.pay.method==='pix'&&!o.pixPaid&&!can?pixBox(o):''}
     ${o.pay.method==='pix'&&o.pixPaid?'<p class="pill" style="margin-top:10px"><i></i>Pix confirmado</p>':''}</div>`}).join('<div style="height:10px"></div>');
 }
 
@@ -509,8 +510,8 @@ function renderCozinha(){
   const ma=$('#menuAdmin'),ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&ma.contains(ae))return;
   ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
 }
-function syncSettings(){const m={'s-pix':S.settings.pix,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}}
-['s-pix','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else S.settings.wa=v;saveSettings()}));
+function syncSettings(){const m={'s-pix':S.settings.pix,'s-pixtype':S.settings.pixType,'s-pixname':S.settings.pixName,'s-pixcity':S.settings.pixCity,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}pixCheck()}
+['s-pix','s-pixtype','s-pixname','s-pixcity','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else if(id==='s-pixtype')S.settings.pixType=v;else if(id==='s-pixname')S.settings.pixName=v||'LANCHES DO BOY';else if(id==='s-pixcity')S.settings.pixCity=v||'BELO HORIZONTE';else S.settings.wa=v;saveSettings()}));
 document.addEventListener('click',e=>{const k=e.target.closest('[data-k]');if(!k)return;const d=document.getElementById(k.dataset.k);if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})}});
 $('#invF').addEventListener('submit',async e=>{e.preventDefault();const nm=$('#inv-name').value.trim(),pin=$('#inv-pin').value.trim();
   if(nm.length<2||!/^\d{4,6}$/.test(pin)){toast('Informe o nome e uma senha de 4 a 6 números');return}
@@ -815,6 +816,37 @@ window.addEventListener('hashchange',()=>{checkGroupHash()});
     if(y>last+6&&y>80)top.classList.add('hide');else if(y<last-6||y<=80)top.classList.remove('hide');last=y;tk=false})},{passive:true});
   window.addEventListener('hashchange',()=>top.classList.remove('hide'))})();
 
+/* ------------------------------ Pix: QR Code e Copia e Cola (padrão BR Code do Banco Central) ------------------------------ */
+const PIX_RX={cpf:/^\d{11}$/,cnpj:/^\d{14}$/,telefone:/^\+55\d{10,11}$/,email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/,aleatoria:/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/};
+function pixKey(){const k=(S.settings.pix||'').trim(),t=S.settings.pixType||'cnpj';
+  if(t==='cpf'||t==='cnpj')return digits(k);
+  if(t==='telefone'){let d=digits(k);if(d.length>=12&&d.startsWith('55'))d=d.slice(2);return '+55'+d}
+  return k.toLowerCase()}
+const pixValid=()=>{const t=S.settings.pixType||'cnpj',k=pixKey();return !!S.settings.pix&&!!PIX_RX[t]&&PIX_RX[t].test(k)};
+const tlv=(id,v)=>id+String(v.length).padStart(2,'0')+v;
+const pixClean=(s,n)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 ]/g,'').replace(/\s+/g,' ').trim().toUpperCase().slice(0,n);
+function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+function pixPayload(amount,txid){if(!pixValid())return '';
+  const p=tlv('00','01')+tlv('26',tlv('00','br.gov.bcb.pix')+tlv('01',pixKey()))+tlv('52','0000')+tlv('53','986')+(amount>0?tlv('54',(+amount).toFixed(2)):'')+tlv('58','BR')
+    +tlv('59',pixClean(S.settings.pixName,25)||'LOJA')+tlv('60',pixClean(S.settings.pixCity,15)||'BRASIL')+tlv('62',tlv('05',(String(txid||'').replace(/[^A-Za-z0-9]/g,'').slice(0,25))||'***'))+'6304';
+  return p+crc16(p)}
+function pixBox(o){const code=pixPayload(o.total,'LB'+o.code);
+  if(!code)return `<div class="pixbox"><div class="lbl">Pagamento por Pix</div><div class="mini">A loja vai te enviar os dados do Pix pelo WhatsApp.</div></div>`;
+  return `<div class="pixbox"><div class="pixhd"><span class="pixlogo">PIX</span><div><b>Pague ${money(o.total)} com Pix</b><div class="mini">Para ${esc(pixClean(S.settings.pixName,25))} · pedido #${o.code}</div></div></div>
+   <button class="btn ok" data-act="copy" data-t="${esc(code)}">Copiar código Pix (Copia e Cola)</button>
+   <div class="mini" style="text-align:center">No app do seu banco, escolha <b>Pix Copia e Cola</b> e cole o código. O valor já vem preenchido.</div>
+   <div class="pixqr" data-code="${esc(code)}" aria-label="QR Code Pix de ${money(o.total)}"></div>
+   <div class="mini" style="text-align:center">Ou escaneie o QR Code em outro celular. Depois de pagar, a loja confirma o recebimento.</div></div>`}
+let qrP=null;function loadQR(){if(window.qrcode)return Promise.resolve();return qrP||(qrP=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='vendor/qrcode.js';sc.onload=res;sc.onerror=()=>{qrP=null;rej()};document.head.appendChild(sc)}))}
+async function renderPixQRs(){const els=$$('.pixqr[data-code]').filter(e=>!e.dataset.done);if(!els.length)return;
+  try{await loadQR()}catch(e){els.forEach(x=>x.textContent='');return}
+  els.forEach(el=>{try{const q=qrcode(0,'M');q.addData(el.dataset.code);q.make();el.innerHTML=`<img src="${q.createDataURL(6,2)}" alt="QR Code Pix" width="220" height="220">`;el.dataset.done=1}catch(e){el.textContent=''}})}
+function pixCheck(){const m=$('#s-pixmsg');if(!m)return;
+  if(!S.settings.pix){m.className='mini';m.textContent='Cadastre a chave Pix para o app gerar o QR Code e o Copia e Cola de cada pedido.';$('#s-pixprev').innerHTML='';return}
+  if(!pixValid()){m.className='mini err';m.textContent={cpf:'CPF deve ter 11 números.',cnpj:'CNPJ deve ter 14 números.',telefone:'Telefone com DDD, ex.: (31) 99999-9999.',email:'E-mail inválido.',aleatoria:'Chave aleatória tem 36 caracteres, ex.: 123e4567-e89b-12d3-a456-426614174000.'}[S.settings.pixType]||'Chave inválida.';$('#s-pixprev').innerHTML='';return}
+  m.className='mini ok-t';m.textContent='✓ Chave válida. Os clientes que escolherem Pix recebem o QR Code e o Copia e Cola com o valor exato do pedido. Teste abaixo pagando R$ 1,00.';
+  const c=pixPayload(1,'TESTE');$('#s-pixprev').innerHTML=`<div class="pixqr" data-code="${esc(c)}"></div><button class="btn sm ghost" type="button" data-act="copy" data-t="${esc(c)}">Copiar código de teste (R$ 1,00)</button>`;renderPixQRs()}
+
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
 S.loc=S.loc||{};const maps={};
@@ -831,7 +863,7 @@ function trackExtra(o){if(!ACTIVE.includes(o.status))return'';
   return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${o.mode==='retirada'?`<div class="mini">🏪 Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
 function renderTrack(){const real=$('#trk');if(!real)return;const tmp=document.createElement('div');TRK_T=tmp;try{renderTrackBase()}finally{TRK_T=null}
   if(real.dataset.sig!==tmp.innerHTML){Object.keys(maps).forEach(k=>{try{maps[k].map.remove()}catch(e){}delete maps[k]});real.innerHTML=tmp.innerHTML;real.dataset.sig=tmp.innerHTML}
-  drawMaps()}
+  drawMaps();renderPixQRs()}
 async function drawMaps(){const els=$$('.trkmap');if(!els.length){updateTrackLive();return}
   try{await loadLeaflet()}catch(e){els.forEach(x=>{x.textContent='Não foi possível carregar o mapa agora.'});updateTrackLive();return}
   Object.keys(maps).forEach(k=>{if(!document.body.contains(maps[k].el)){try{maps[k].map.remove()}catch(e){}delete maps[k]}});
