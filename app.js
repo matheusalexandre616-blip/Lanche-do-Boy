@@ -188,7 +188,20 @@ const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').is('hidden_at',null).order('created_at',{ascending:false}).limit(300);
-  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc()}
+  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data)}
+/* ------------------------------ som de pedido novo ------------------------------ */
+let actx=null,seenNew=null;
+function unlockAudio(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
+function chime(){unlockAudio();if(!actx)return;
+  [0,.55,1.1].forEach(d=>[880,1175].forEach((f,i)=>{const t=actx.currentTime+d+i*.18,o=actx.createOscillator(),g=actx.createGain();
+    o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.4);
+    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+.42)}))}
+function alertNewOrders(rows){
+  if(!isLoja()){seenNew=null;return}
+  const now=rows.filter(r=>r.status==='novo').map(r=>r.id);
+  if(seenNew){const fresh=now.filter(id=>!seenNew.has(id));if(fresh.length){chime();toast(fresh.length>1?fresh.length+' pedidos novos!':'Pedido novo!')}}
+  seenNew=new Set(now)}
 async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();return}
   const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
   S.drivers=(data||[]).map(d=>({id:d.user_id,name:d.name}));
