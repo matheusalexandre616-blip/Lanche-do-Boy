@@ -189,7 +189,7 @@ const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').is('hidden_at',null).order('created_at',{ascending:false}).limit(300);
-  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data)}
+  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data);notifyCustomer()}
 /* ------------------------------ som de pedido novo ------------------------------ */
 let actx=null,seenNew=null;
 function unlockAudio(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
@@ -344,7 +344,7 @@ const saveCart=()=>LS.set('lb_cart',cart);
 function thumb(p){const u=S.photos[p.id]||PHOTOS[p.id];if(u)return `<img src="${u}" alt="${esc(p.name)}" loading="lazy">`;return `<img class="nophoto" src="${LOGO_SM}" alt="Lanches do Boy">`;}
 function renderCliente(){
   const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
-  renderGroupBar();
+  renderGroupBar();renderOrderStatus();
   $('#feeMin').textContent='a partir de '+money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
   const open=S.settings.open;const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':'Loja fechada';
   $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
@@ -844,6 +844,33 @@ function pixCheck(){const m=$('#s-pixmsg');if(!m)return;
   if(!pixValid()){m.className='mini err';m.textContent={cpf:'CPF deve ter 11 números.',cnpj:'CNPJ deve ter 14 números.',telefone:'Telefone com DDD, ex.: (31) 99999-9999.',email:'E-mail inválido.',aleatoria:'Chave aleatória tem 36 caracteres, ex.: 123e4567-e89b-12d3-a456-426614174000.'}[S.settings.pixType]||'Chave inválida.';$('#s-pixprev').innerHTML='';return}
   m.className='mini ok-t';m.textContent='✓ Chave válida. Os clientes que escolherem Pix recebem o QR Code e o Copia e Cola com o valor exato do pedido. Teste abaixo pagando R$ 1,00.';
   const c=pixPayload(1,'TESTE');$('#s-pixprev').innerHTML=`<div class="pixqr" data-code="${esc(c)}"></div><button class="btn sm ghost" type="button" data-act="copy" data-t="${esc(c)}">Copiar código de teste (R$ 1,00)</button>`;renderPixQRs()}
+
+/* ------------------------------ status do pedido na tela do cliente ------------------------------ */
+function etaFor(o){const loc=o.drvId&&S.loc[o.drvId];
+  if(o.status==='rota'&&loc&&o.dlat!=null)return Math.max(3,Math.round(3+kmBetween(loc,{lat:o.dlat,lng:o.dlng})*1.35/22*60));
+  if(o.eta)return Math.max(o.mode==='retirada'?3:5,Math.round(o.eta-(Date.now()-o.createdAt)/60000));return null}
+function statusInfo(o){const PK=o.mode==='retirada',m=etaFor(o);
+  const steps=PK?['novo','preparo','pronto']:['novo','preparo','pronto','rota'];
+  const lab={novo:'Recebido',preparo:'Em preparo',pronto:PK?'Pronto p/ retirar':'Pronto',rota:'Saiu para entrega'}[o.status]||STATUS[o.status];
+  const msg={novo:'Aguardando a hamburgueria aceitar.',
+    preparo:'Seu pedido está sendo preparado.'+(m?` ${PK?'Pronto':'Chega'} em ~${m} min.`:''),
+    pronto:PK?'Seu pedido está pronto! Pode vir retirar. 🏪':'Pronto! Aguardando o motoboy sair.',
+    rota:'🛵 O motoboy está a caminho'+(m?`, chega em ~${m} min`:'')+'. Toque para ver no mapa.'}[o.status]||'';
+  return{steps,idx:steps.indexOf(o.status),lab,msg}}
+function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
+  const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).sort((a,b)=>b.createdAt-a.createdAt).slice(0,3);
+  if(!act.length||sess){el.innerHTML='';return}
+  el.innerHTML=act.map(o=>{const i=statusInfo(o);return `<button class="ostat s-${o.status}" data-act="track" aria-label="Acompanhar pedido #${o.code}: ${esc(i.lab)}">
+    <div class="ostat-h"><span class="ostat-dot"></span><b>Pedido #${o.code}</b><span class="ostat-lab">${esc(i.lab)}</span></div>
+    <div class="osteps" style="grid-template-columns:repeat(${i.steps.length},1fr)">${i.steps.map((x,k)=>`<i class="${k<=i.idx?'on':''}${k===i.idx?' cur':''}"></i>`).join('')}</div>
+    <div class="ostat-f"><span>${i.msg}</span><span class="go">${o.status==='rota'?'Ver no mapa':'Acompanhar'}<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div></button>`}).join('')}
+let lastSt=null;
+function notifyCustomer(){if(sess)return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
+  if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=o.mode==='retirada';
+    const m={preparo:'Seu pedido #'+o.code+' está sendo preparado 🍔',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar 🏪':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega 🛵',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite! 😋',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
+    if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
+  lastSt=now}
+setInterval(()=>{if(!sess&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};

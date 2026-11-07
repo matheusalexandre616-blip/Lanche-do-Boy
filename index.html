@@ -182,6 +182,17 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 .pixqr{display:grid;place-items:center}.pixqr img{width:220px;height:220px;max-width:100%;image-rendering:pixelated;background:#fff;border-radius:12px;padding:6px}
 .pixqr:empty{display:none}.pixprev{display:grid;gap:8px;justify-items:start;margin-top:8px}.pixprev .pixqr img{width:150px;height:150px}
 .ok-t{color:var(--ok)}
+/* status do pedido (cliente) */
+#ordStatus{display:grid;gap:10px;margin-bottom:14px}#ordStatus:empty{display:none}
+.ostat{--c:var(--brand);display:grid;gap:10px;width:100%;text-align:left;color:var(--ink);background:var(--surface);border:2px solid var(--c);border-radius:var(--r3);padding:13px 14px;box-shadow:var(--sh1)}
+.ostat.s-preparo{--c:var(--gold)}.ostat.s-pronto{--c:var(--ok)}.ostat.s-rota{--c:var(--info)}
+.ostat-h{display:flex;align-items:center;gap:9px}.ostat-h b{font-size:15.5px}
+.ostat-lab{margin-left:auto;font-weight:800;font-size:12.5px;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:99px;padding:3px 10px}
+.ostat-dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+@media (prefers-reduced-motion:no-preference){.ostat-dot{animation:pulse 1.6s ease-in-out infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 55%,transparent)}50%{box-shadow:0 0 0 7px transparent}}}
+.osteps{display:grid;gap:5px}.osteps i{height:6px;border-radius:4px;background:var(--line)}.osteps i.on{background:var(--c)}
+.ostat-f{display:flex;align-items:center;gap:10px;font-size:13.5px}.ostat-f>span:first-child{flex:1;min-width:0}
+.ostat .go{color:var(--c);font-weight:800;font-size:13px;display:flex;align-items:center;gap:2px;white-space:nowrap}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -304,6 +315,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
 <main>
   <div id="boot" style="padding:60px 16px;text-align:center;font:600 16px system-ui,sans-serif;color:#6B6360">Carregando o cardápio…<noscript><br>Ative o JavaScript do navegador.</noscript></div>
   <section class="view wrap" id="v-cliente" hidden>
+    <div id="ordStatus"></div>
     <div class="hero">
       <div><h1>Lanches<br>do Boy</h1><p class="slogan">O melhor sabor de BH</p><span class="since">Desde 2014</span></div>
       <div class="art" id="heroArt"></div>
