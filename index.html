@@ -196,6 +196,26 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 .xrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line2)}.xrow .pr-ed{margin-top:0}
 .xnew{display:grid;gap:8px;background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r2);padding:12px;margin-top:6px}
 .xnew-row{display:flex;gap:8px;flex-wrap:wrap}.xnew-row input{flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 10px;font:inherit}.xnew-row input#x-price{flex:0 1 100px}
+/* categorias fixas */
+#chips{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hdrH,0px));z-index:15;background:var(--bg);margin:0 -16px;padding:8px 16px 10px;transition:top .28s ease,box-shadow .2s}
+#chips.stuck{box-shadow:0 8px 14px -10px rgba(0,0,0,.45)}
+.sec{scroll-margin-top:calc(var(--hdrH,0px) + 70px)}
+/* barra inferior do cliente */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
+.tabbar button{position:relative;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;font-size:11.5px;font-weight:700;border-radius:12px;min-height:52px;max-width:140px;justify-self:center;width:100%}
+.tabbar button.on{color:var(--brand)}.tabbar button.on .ic{transform:translateY(-1px)}
+.tabbar button.on::before{content:"";position:absolute;top:-7px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--brand)}
+.tabbar .badge{position:absolute;top:2px;left:calc(50% + 6px);font-size:10.5px;padding:0 6px}
+.tabbar .ic{width:23px;height:23px}
+body.has-tabbar{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+body.has-tabbar .dock{bottom:calc(64px + env(safe-area-inset-bottom,0px));padding-bottom:10px}
+body.has-tabbar .scrim{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+.tabbar{z-index:60}
+body.has-tabbar .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+@media (min-width:700px){.tabbar{left:50%;right:auto;transform:translateX(-50%);width:min(560px,100%);border:1px solid var(--line);border-radius:20px 20px 0 0}}
+.howto{margin:0;padding-left:20px;display:grid;gap:8px}
+.acc{display:flex;gap:12px;align-items:center}.acc-av{width:46px;height:46px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-family:var(--display);font-size:22px;flex:none}
+.acc-row{justify-content:space-between}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -375,6 +395,12 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
 </main>
 
 <div class="dock" id="dock" hidden><div id="dockIn"></div></div>
+<nav class="tabbar" id="tabbar" aria-label="Navegação" hidden>
+  <button data-tb="home" class="on" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/></svg><span>Início</span></button>
+  <button data-tb="orders"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg><span>Pedidos</span><span class="badge" id="tb-orders" hidden></span></button>
+  <button data-tb="group"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.5 14.6c2.4-.2 4.4 1.2 5 4.4"/></svg><span>Grupo</span><span class="badge" id="tb-group" hidden></span></button>
+  <button data-tb="account"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.9-3.8 3.8-5.8 7.5-5.8s6.6 2 7.5 5.8"/></svg><span id="tb-acc-l">Entrar</span></button>
+</nav>
 <div id="layer"></div>
 
 <script defer src="app.js"></script>

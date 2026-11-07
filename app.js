@@ -318,7 +318,7 @@ function render(){
     if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
     else v='entrar'}
   document.body.dataset.v=v;
-  const nav=$('#nav');nav.hidden=!isLoja()||PORTAL==='cliente';$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=!(v==='cliente'&&!sess);if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
+  const nav=$('#nav');nav.hidden=!isLoja()||PORTAL==='cliente';$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=true;if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
   $('#t-cliente').hidden=!isLoja();
   VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;{const t=$('#t-'+x);if(t)t.setAttribute('aria-selected',x===v)}});
   const os=Object.values(S.orders);
@@ -331,7 +331,7 @@ function render(){
   const mine=myOrders().filter(o=>o.status!=='entregue'&&o.status!=='cancelado');
   setB('#b-cliente',0);
   if(v==='cliente')renderCliente(mine);else if(v==='cozinha')renderCozinha();else if(v==='motoboy')renderMoto();else renderLogin();
-  renderDock(v,mine);
+  renderDock(v,mine);renderTabbar(v);
   syncSettings();
   if(trackOpen)renderTrack();
 }
@@ -364,15 +364,15 @@ function renderDock(v,mine){
   if(v!=='cliente'){d.hidden=true;return}
   const act=myOrders().filter(o=>o.status!=='entregue'&&o.status!=='cancelado').length;
   const n=groupActive()?0:cartCount(),gb=groupActive()?groupDockBtn():'';
-  if(!n&&!act&&!gb){d.hidden=true;return}
+  if(!n&&!gb){d.hidden=true;return}
   d.hidden=false;
-  in_.innerHTML=(act?`<button class="btn round" data-act="track" aria-label="Meus pedidos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/></svg><span class="badge">${act}</span></button>`:'')+gb+(n?`<button class="btn grow" data-act="cart"><span><span class="cnt">${n}</span>Ver sacola</span><b>${money(cartSub())}</b></button>`:'');
+  in_.innerHTML=''+gb+(n?`<button class="btn grow" data-act="cart"><span><span class="cnt">${n}</span>Ver sacola</span><b>${money(cartSub())}</b></button>`:'');
 }
 
 /* ------------------------------ sheets ------------------------------ */
 let trackOpen=false;
 function openSheet(html,onReady){const L=$('#layer');L.innerHTML=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;document.body.style.overflow='hidden';trackOpen=false;if(onReady)onReady($('.sheet',L))}
-function closeSheet(){$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false}
+function closeSheet(){$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false;setTb('home')}
 function openProduct(id){
   const p=P[id];let qty=1,note='';const ex=new Set(),rm=new Set();
   const list=EXTRA_SETS[p.extras]||EXTRAS;
@@ -783,7 +783,7 @@ function groupDockBtn(){const d=GRP.data,n=(d.items||[]).reduce((a,it)=>a+it.qty
 function renderGroupBar(){const el=$('#grpBar');if(!el)return;if(sess){el.innerHTML='';return}
   if(groupActive()){const d=GRP.data,ppl=new Set(d.items.map(it=>it.person)).size;
     el.innerHTML=`<div class="gbar on"><div class="gicon">👥</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
-  else el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
+  else el.innerHTML='';if(0)el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
 function openGroup(){if(!GRP.data){refreshGroup().then(()=>{if(GRP.data)openGroup()});return}
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar ao cardápio">${BACKSVG}<span>Cardápio</span></button><h2>Pedido em grupo</h2></div><div class="bd" id="grp"></div>`);renderGroupSheet()}
 function renderGroupSheet(){const el=$('#grp');if(!el||!GRP.data)return;const d=GRP.data,own=!!d.is_owner;
@@ -898,6 +898,42 @@ function renderExtrasAdmin(){const box=$('#xAdmin');if(!box||!isLoja())return;co
     const{error}=await sb.from('extras').insert({set_id:xSet,id,name:nm,price:v});if(error){dbFail(error);return}
     toast(nm+' adicionado aos acréscimos');await loadCatalog()})}
 function parsePrice(t){t=String(t||'').trim();if(!t)return NaN;return Math.round(parseFloat(t.replace(/\./g,'').replace(',','.'))*100)/100}
+
+/* ------------------------------ barra inferior do cliente e categorias fixas ------------------------------ */
+let tbOn='home';
+function setTb(k){tbOn=k;$$('#tabbar [data-tb]').forEach(b=>{const on=b.dataset.tb===k;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')})}
+function renderTabbar(v){const tb=$('#tabbar');if(!tb)return;const show=v==='cliente'&&!sess;tb.hidden=!show;document.body.classList.toggle('has-tabbar',show);if(!show)return;
+  const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).length,b1=$('#tb-orders');b1.hidden=!act;b1.textContent=act;
+  const gn=groupActive()?GRP.data.items.reduce((a,it)=>a+it.qty,0):0,b2=$('#tb-group');b2.hidden=!groupActive();b2.textContent=gn||'•';
+  const lb=$('#tb-acc-l');if(lb)lb.textContent=cust?cust.name.split(' ')[0]:'Entrar';setTb(tbOn)}
+function openGroupIntro(){setTb('group');
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div>
+  <div class="bd"><div class="card gcard"><div class="gicon">👥</div><div><b>Junte a turma num pedido só</b><div class="mini">Ideal para o escritório, a faculdade ou a família.</div></div></div>
+  <ol class="howto"><li><b>Crie o grupo</b> e mande o link no WhatsApp.</li><li><b>Cada um escolhe</b> o próprio lanche, só com o nome, sem cadastro.</li><li><b>Você envia tudo junto</b>: uma entrega, uma taxa dividida, e o app mostra quanto cada um paga.</li></ol>
+  <button class="btn" data-act="gcreate">Criar pedido em grupo</button></div>`)}
+function openAccount(){if(!cust){openLogin();setTb('account');return}setTb('account');
+  const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).length,tot=myOrders().length;
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Minha conta</h2></div>
+  <div class="bd"><div class="card acc"><div class="acc-av">${esc(cust.name.trim().charAt(0).toUpperCase())}</div><div style="min-width:0"><b>${esc(cust.name)}</b><div class="mini">${esc(fmtPhone(cust.phone||''))}${S.user&&S.user.email?' · '+esc(S.user.email):''}</div></div></div>
+   <button class="btn ghost acc-row" data-tb-go="orders"><span>📦 Meus pedidos</span><span class="mini">${act?act+' em andamento · ':''}${tot} no total</span></button>
+   <button class="btn ghost acc-row" data-tb-go="group"><span>👥 Pedido em grupo</span><span class="mini">${groupActive()?'Grupo aberto':'Criar'}</span></button>
+   <button class="btn ghost acc-row" data-act="where"><span>📍 Endereço da loja</span><span class="mini">Como chegar</span></button>
+   <button class="btn ghost danger" data-act="clogout">Sair da conta</button></div>`,sh=>{$$('[data-tb-go]',sh).forEach(b=>b.addEventListener('click',()=>tbGo(b.dataset.tbGo)))})}
+function tbGo(k){
+  if(k==='home'){closeSheet();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});return}
+  if(k==='orders'){openTrack();setTb('orders');return}
+  if(k==='group'){if(groupActive()){openGroup();setTb('group')}else openGroupIntro();return}
+  if(k==='account')openAccount()}
+document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb)});
+/* categorias fixas no topo e marcação da seção atual */
+(function(){const root=document.documentElement,top=$('#chrome');let tk=false;
+  function sync(){const chips=$('#chips');if(!chips||$('#v-cliente').hidden)return;
+    const h=top.classList.contains('hide')?0:top.offsetHeight;root.style.setProperty('--hdrH',Math.max(0,Math.round(h))+'px');
+    const cb=chips.getBoundingClientRect();chips.classList.toggle('stuck',cb.top<=h+1&&window.scrollY>200);
+    const secs=$$('#menu .sec');let curSec=null;secs.forEach(sc=>{if(sc.getBoundingClientRect().top<=cb.bottom+12)curSec=sc});
+    const c=curSec?curSec.id.slice(4):null;if(c&&c!==catOn){catOn=c;$$('#chips .chip').forEach(x=>{const on=x.dataset.c===c;x.classList.toggle('on',on);if(on)chips.scrollTo({left:x.offsetLeft-16,behavior:'smooth'})})}}
+  window.addEventListener('scroll',()=>{if(tk)return;tk=true;requestAnimationFrame(()=>{tk=false;sync()})},{passive:true});
+  window.addEventListener('resize',sync);setTimeout(sync,600);new MutationObserver(sync).observe(top,{attributes:true,attributeFilter:['class']})})();
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
