@@ -543,6 +543,7 @@ document.addEventListener('click',e=>{
   else if(a==='photo'){photoFor=id;$('#photoIn').click()}
   else if(a==='sold')setSold(id);
   else if(a==='price')savePrice(id);
+  else if(a==='geoon'){geoState='off';startGeo(true);renderMoto()}
   else if(a==='pdel')removeProduct(b,id);
   else if(a==='odetail')openOrderDetail(id);
   else if(a==='ohide')hideOrder(b,id);
@@ -556,7 +557,7 @@ document.addEventListener('click',e=>{
   else if(a==='gcancel')cancelGroup(b);
   else if(a==='gleave')leaveGroup();
   else if(a==='gname')askGroupName();
-  else if(a==='start'){Promise.all(Object.values(S.orders).filter(o=>o.driver===drv&&o.status==='pronto').map(o=>sb.rpc('set_status',{oid:o.id,ns:'rota'}))).then(()=>{loadOrders();toast('Boa entrega!')})}
+  else if(a==='start'){startGeo(true);Promise.all(Object.values(S.orders).filter(o=>o.driver===drv&&o.status==='pronto').map(o=>sb.rpc('set_status',{oid:o.id,ns:'rota'}))).then(()=>{loadOrders();toast('Boa entrega!')})}
 });
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.act==='assign'){const v=t.value===''?null:+t.value;rpc('assign_driver',{oid:t.dataset.id,drv:v==null?null:S.drivers[v].id}).then(r=>{if(!r.error&&v!=null)toast('Pedido destinado a '+S.settings.drivers[v])})}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
@@ -661,7 +662,7 @@ function renderMoto(){
   const dn=S.settings.drivers;if(drv==null||drv>=dn.length)drv=0;
   const mine=Object.values(S.orders).filter(o=>o.driver===drv&&(o.status==='pronto'||o.status==='rota'));
   const plan=planRoute(mine),legs=mapsLegs(plan.stops),waiting=mine.filter(o=>o.status==='pronto').length;
-  let h=`<div class="card" style="margin-top:6px;display:grid;gap:12px">${isLoja()?`<div class="f"><label for="drvSel">Vendo a tela do motoboy</label><select id="drvSel">${dn.map((n,i)=>`<option value="${i}" ${i===drv?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`:`<div><span class="mini">Olá,</span> <b>${esc(dn[drv])}</b></div>`}
+  let h=geoBanner()+`<div class="card" style="margin-top:6px;display:grid;gap:12px">${isLoja()?`<div class="f"><label for="drvSel">Vendo a tela do motoboy</label><select id="drvSel">${dn.map((n,i)=>`<option value="${i}" ${i===drv?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`:`<div><span class="mini">Olá,</span> <b>${esc(dn[drv])}</b></div>`}
    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b class="d" style="font-size:26px">${mine.length} ${mine.length===1?'entrega':'entregas'}</b><div class="mini">${mine.length?`Rota de ${plan.km.toFixed(1).replace('.',',')} km · cerca de ${plan.min} min`:'Aguardando a hamburgueria destinar pedidos'}</div></div></div>
    ${mine.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${waiting?`<button class="btn" data-act="start" style="flex:1">Sair para entrega (${waiting})</button>`:''}${legs.map((u,i)=>`<a class="btn ${waiting?'ghost':''}" style="flex:1" href="${u}" target="_blank" rel="noopener">Abrir rota no Google Maps${legs.length>1?' · trecho '+(i+1):''}</a>`).join('')}</div>`:''}</div>`;
   if(!mine.length){h+=`<div class="empty" style="margin-top:12px">Nenhuma entrega na fila. Quando a hamburgueria destinar um pedido para você, ele aparece aqui com a rota.</div>`;$('#moto').innerHTML=h;bindDrv();return}
@@ -967,7 +968,7 @@ function updateTrackLive(){
   myOrders().filter(o=>ACTIVE.includes(o.status)).forEach(o=>{
     const e1=document.getElementById('eta-'+o.id);if(!e1)return;
     const loc=o.drvId&&S.loc[o.drvId],dest=o.dlat!=null?{lat:o.dlat,lng:o.dlng}:null;let mins=null,st='';
-    if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você.`}
+    if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;const age=Math.round((Date.now()-loc.t)/1000);st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você · atualizado ${age<60?'agora':'há '+Math.round(age/60)+' min'}.`;if(age>180)st+=' (sinal do motoboy fraco no momento)'}
     else if(o.eta){mins=Math.max(5,o.eta-(Date.now()-o.createdAt)/60000)}
     if(!st&&o.mode==='retirada')st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Seu pedido está pronto! Pode vir retirar. 🏪'}[o.status]||'';
     if(o.mode==='retirada'&&o.status==='pronto')mins=null;
@@ -981,9 +982,23 @@ function updateTrackLive(){
       else if(mp.drv){mp.map.removeLayer(mp.drv);mp.drv=null}}})}
 setInterval(()=>{if(trackOpen&&S.user)loadLoc()},8000);setInterval(()=>{updateTrackLive()},30000);setInterval(loadEta,60000);
 let watchId=null,lastSent=0;
-function syncGeo(){const need=!!(sess&&(isMoto()||isLoja())&&S.user&&Object.values(S.orders).some(o=>o.status==='rota'&&o.drvId===S.user.id));
-  if(need&&watchId==null&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=Date.now();if(n-lastSent<8000)return;lastSent=n;sb.rpc('post_location',{la:p.coords.latitude,lo:p.coords.longitude})},()=>{toast('Ative a localização do celular para o cliente acompanhar a entrega')},{enableHighAccuracy:true,maximumAge:5000,timeout:20000})}
-  else if(!need&&watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
+let geoState='off',geoErr='',wakeLock=null;
+function myRota(){return !!(sess&&(isMoto()||isLoja())&&S.user&&Object.values(S.orders).some(o=>o.status==='rota'&&o.drvId===S.user.id))}
+function startGeo(force){if(watchId!=null||!navigator.geolocation)return;if(!force&&!myRota())return;
+  geoState='wait';watchId=navigator.geolocation.watchPosition(p=>{if(geoState!=='on'){geoState='on';geoErr='';if($('#v-motoboy')&&!$('#v-motoboy').hidden)renderMoto()}
+      const n=Date.now();if(n-lastSent<8000)return;lastSent=n;sb.rpc('post_location',{la:p.coords.latitude,lo:p.coords.longitude}).then(r=>{if(r.error)console.warn(r.error.message)})},
+    e=>{geoState='err';geoErr=e&&e.code===1?'denied':'unavailable';navigator.geolocation.clearWatch(watchId);watchId=null;if($('#v-motoboy')&&!$('#v-motoboy').hidden)renderMoto();
+      toast(geoErr==='denied'?'Permita a localização para o cliente acompanhar a entrega':'Não foi possível pegar sua localização. Verifique o GPS.')},
+    {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+  keepAwake()}
+async function keepAwake(){try{if('wakeLock' in navigator&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&watchId!=null)keepAwake()});
+function stopGeo(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}geoState='off';try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
+function syncGeo(){const need=myRota();if(need&&watchId==null&&geoState!=='err')startGeo();else if(!need&&watchId!=null)stopGeo()}
+function geoBanner(){if(!myRota())return '';
+  if(geoState==='on')return `<div class="geo on"><span class="geo-dot"></span><div><b>Localização ligada</b><div class="mini">O cliente está vendo você no mapa. Mantenha esta tela aberta durante a entrega.</div></div></div>`;
+  if(geoState==='wait')return `<div class="geo wait"><span class="geo-dot"></span><div><b>Ligando a localização…</b><div class="mini">Se o celular perguntar, toque em <b>Permitir</b>.</div></div></div>`;
+  return `<div class="geo off"><div><b>📍 Localização desligada</b><div class="mini">${geoErr==='denied'?'O celular bloqueou a localização. No iPhone: Ajustes → Privacidade → Serviços de Localização → Safari → "Ao Usar o App". Depois toque abaixo.':'Ligue a localização para o cliente acompanhar você no mapa.'}</div></div><button class="btn sm" data-act="geoon">Ligar localização</button></div>`}
 
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
 document.title=PORTAL==='loja'?'Hamburgueria · Lanches do Boy':PORTAL==='moto'?'Motoboy · Lanches do Boy':'Lanches do Boy Delivery';

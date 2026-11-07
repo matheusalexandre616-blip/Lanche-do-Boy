@@ -216,6 +216,11 @@ body.has-tabbar .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .howto{margin:0;padding-left:20px;display:grid;gap:8px}
 .acc{display:flex;gap:12px;align-items:center}.acc-av{width:46px;height:46px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-family:var(--display);font-size:22px;flex:none}
 .acc-row{justify-content:space-between}
+/* GPS do motoboy */
+.geo{display:flex;gap:12px;align-items:center;border-radius:var(--r2);padding:12px 14px;margin-top:6px;border:1.5px solid var(--line)}
+.geo.on{border-color:var(--ok);background:var(--ok-soft)}.geo.wait{border-color:var(--gold);background:var(--warn-soft)}.geo.off{border-color:var(--crit);background:var(--brand-soft);flex-wrap:wrap}.geo.off>div{flex:1 1 220px}
+.geo-dot{width:12px;height:12px;border-radius:50%;background:var(--ok);flex:none}.geo.wait .geo-dot{background:var(--gold)}
+@media (prefers-reduced-motion:no-preference){.geo.on .geo-dot{animation:pulse 1.6s ease-in-out infinite;--c:var(--ok)}}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
