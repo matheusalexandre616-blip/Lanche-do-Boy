@@ -210,7 +210,7 @@ async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();retur
   rebuildOrders()}
 function setList(arr,items){arr.length=0;items.forEach(x=>arr.push(x))}
 async function loadCatalog(){
-  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
+  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*').order('name'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
   if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||''})));
     Object.keys(P).forEach(k=>delete P[k]);MENU.forEach(m=>P[m.id]=m);
     const so={};p.data.forEach(r=>{if(r.sold_out)so[r.id]=true});S.settings.soldOut=so}
@@ -314,9 +314,9 @@ function render(){
   if(PORTAL==='cliente'&&isMoto()){location.replace('/motoboy');return}
   if(!allowed(v)){
     if(isLoja()){location.hash='#cozinha';return}
-    if(PORTAL==='cliente'){location.hash='#cliente';return}
+    if(PORTAL==='cliente'){v='cliente'}else
     if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
-    v='entrar'}
+    else v='entrar'}
   document.body.dataset.v=v;
   const nav=$('#nav');nav.hidden=!isLoja();$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=!(v==='cliente'&&!sess);if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
   $('#t-cliente').hidden=!isLoja();
@@ -512,6 +512,7 @@ function renderCozinha(){
     h+=finishedHtml(os);
   }
   $('#board').innerHTML=h;
+  renderExtrasAdmin();
   const ma=$('#menuAdmin'),ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&ma.contains(ae))return;
   ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
 }
@@ -871,6 +872,32 @@ function notifyCustomer(){if(sess)return;const mine=myOrders(),now={};mine.forEa
     if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
   lastSt=now}
 setInterval(()=>{if(!sess&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
+
+/* ------------------------------ acréscimos: editar preço, adicionar e remover ------------------------------ */
+const XSETS=[['default','Lanches',()=>EXTRAS],['mac','Macarrão',()=>EXTRAS_MAC],['misto','Misto',()=>EXTRAS_MISTO],['omelete','Omelete',()=>EXTRAS_OMELETE]];
+let xSet='default';
+function xUsedBy(k){return MENU.filter(p=>k==='default'?(p.opts&&!p.extras):p.extras===k).map(p=>p.name)}
+function renderExtrasAdmin(){const box=$('#xAdmin');if(!box||!isLoja())return;const ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&box.contains(ae))return;
+  const cur_=XSETS.find(x=>x[0]===xSet)||XSETS[0],list=cur_[2](),used=xUsedBy(xSet);
+  box.innerHTML=`<div class="chips" role="tablist" aria-label="Grupo de acréscimos">${XSETS.map(([k,n,f])=>`<button class="chip ${k===xSet?'on':''}" data-xset="${k}" role="tab" aria-selected="${k===xSet}">${n} <span class="mini">(${f().length})</span></button>`).join('')}</div>
+   <div class="mini">${used.length?'Aparecem em: '+esc(used.slice(0,6).join(', '))+(used.length>6?` e mais ${used.length-6}`:''):'Nenhum item do cardápio usa este grupo no momento.'}</div>
+   ${list.length?list.map(x=>`<div class="xrow" data-xid="${esc(x.id)}"><b>${esc(x.n)}</b><div class="pr-ed"><span>R$</span><input inputmode="decimal" class="x-price" value="${x.p.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(x.n)}"><button class="btn sm" data-xact="save">Salvar</button><button class="btn sm ghost danger" data-xact="del">Remover</button></div></div>`).join(''):'<div class="empty">Nenhum acréscimo neste grupo.</div>'}
+   <form class="xnew" id="xF" novalidate><b>Novo acréscimo em ${esc(cur_[1])}</b><div class="xnew-row"><input id="x-name" maxlength="40" placeholder="Nome (ex.: Cheddar)" aria-label="Nome do acréscimo"><input id="x-price" inputmode="decimal" placeholder="Preço" aria-label="Preço do acréscimo"><button class="btn sm" type="submit">Adicionar</button></div><div class="err" id="x-e" role="alert"></div></form>`;
+  $$('[data-xset]',box).forEach(b=>b.addEventListener('click',()=>{xSet=b.dataset.xset;renderExtrasAdmin()}));
+  $$('[data-xact]',box).forEach(b=>b.addEventListener('click',async()=>{const row=b.closest('[data-xid]'),id=row.dataset.xid,x=list.find(y=>y.id===id);
+    if(b.dataset.xact==='save'){const v=parsePrice($('.x-price',row).value);if(!(v>=0&&v<500)){toast('Preço inválido. Use por exemplo 4,50');return}
+      const{error}=await sb.from('extras').update({price:v}).eq('set_id',xSet).eq('id',id);if(error){dbFail(error);return}
+      $('.x-price',row).blur();toast(x.n+': '+money(v));await loadCatalog()}
+    else{if(!confirmTap(b,'Confirmar'))return;const{error}=await sb.from('extras').delete().eq('set_id',xSet).eq('id',id);if(error){dbFail(error);return}
+      toast(x.n+' removido');await loadCatalog()}}));
+  $('#xF',box).addEventListener('submit',async e=>{e.preventDefault();const err=$('#x-e',box),nm=$('#x-name',box).value.trim(),v=parsePrice($('#x-price',box).value);err.textContent='';
+    if(nm.length<2){err.textContent='Informe o nome do acréscimo.';return}
+    if(!(v>=0&&v<500)){err.textContent='Informe um preço válido, por exemplo 4,50 (ou 0 para grátis).';return}
+    if(list.some(y=>y.n.toLowerCase()===nm.toLowerCase())){err.textContent='Esse acréscimo já existe neste grupo.';return}
+    let id=slug(nm);if(list.some(y=>y.id===id))id+='-'+Math.random().toString(36).slice(2,5);
+    const{error}=await sb.from('extras').insert({set_id:xSet,id,name:nm,price:v});if(error){dbFail(error);return}
+    toast(nm+' adicionado aos acréscimos');await loadCatalog()})}
+function parsePrice(t){t=String(t||'').trim();if(!t)return NaN;return Math.round(parseFloat(t.replace(/\./g,'').replace(',','.'))*100)/100}
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};

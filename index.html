@@ -193,6 +193,9 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 .osteps{display:grid;gap:5px}.osteps i{height:6px;border-radius:4px;background:var(--line)}.osteps i.on{background:var(--c)}
 .ostat-f{display:flex;align-items:center;gap:10px;font-size:13.5px}.ostat-f>span:first-child{flex:1;min-width:0}
 .ostat .go{color:var(--c);font-weight:800;font-size:13px;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.xrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line2)}.xrow .pr-ed{margin-top:0}
+.xnew{display:grid;gap:8px;background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r2);padding:12px;margin-top:6px}
+.xnew-row{display:flex;gap:8px;flex-wrap:wrap}.xnew-row input{flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 10px;font:inherit}.xnew-row input#x-price{flex:0 1 100px}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -330,7 +333,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
 
   <section class="view wrap wide" id="v-cozinha" hidden>
     <div class="stats" id="stats"></div>
-    <div class="chips" style="margin:-4px 0 12px"><button class="chip" data-k="cardapioPanel">🍔 Cardápio e preços</button><button class="chip" data-k="ajustesPanel">⚙️ Ajustes da loja</button><button class="chip" data-k="equipePanel">🛵 Equipe e motoboys</button></div>
+    <div class="chips" style="margin:-4px 0 12px"><button class="chip" data-k="cardapioPanel">🍔 Cardápio e preços</button><button class="chip" data-k="extrasPanel">➕ Acréscimos</button><button class="chip" data-k="ajustesPanel">⚙️ Ajustes da loja</button><button class="chip" data-k="equipePanel">🛵 Equipe e motoboys</button></div>
     <div class="board" id="board"></div>
     <details class="panel" id="cardapioPanel"><summary>Cardápio: preços, fotos e esgotados</summary><div class="in"><p class="mini" style="margin:0">Altere o preço e toque em "Salvar preço": o novo valor vale na hora para os próximos pedidos. Em Foto, escolha a imagem do celular. Em Disponível/Esgotado, pause um item.</p><form id="niF" class="newitem" novalidate>
       <b class="d" style="font-size:18px">Adicionar item ao cardápio</b>
@@ -346,6 +349,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       <p class="mini" style="margin:0">O item aparece na hora para os clientes. Depois é só tocar em Foto para colocar a imagem.</p>
     </form>
     <div id="menuAdmin"></div></div></details>
+    <details class="panel" id="extrasPanel"><summary>Acréscimos: preços e novos itens</summary><div class="in"><p class="mini" style="margin:0">Os acréscimos são separados por grupo. Mude o preço e toque em Salvar, adicione um novo no fim da lista ou remova. Vale na hora para os próximos pedidos.</p><div id="xAdmin"></div></div></details>
     <details class="panel" id="ajustesPanel"><summary>Ajustes da loja</summary><div class="in">
       <div class="g2">
         <div class="f"><label for="s-pixtype">Tipo da chave Pix</label><select id="s-pixtype"><option value="cnpj">CNPJ</option><option value="cpf">CPF</option><option value="telefone">Telefone</option><option value="email">E-mail</option><option value="aleatoria">Chave aleatória</option></select></div>
