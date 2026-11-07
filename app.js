@@ -280,14 +280,15 @@ const waLink=(ph,txt)=>{let d=digits(ph);if(d.length<=11)d='55'+d;return 'https:
 
 /* ------------------------------ navegação ------------------------------ */
 const VIEWS=['cliente','cozinha','motoboy','entrar'];
-const cur=()=>{const h=(location.hash||'').slice(1);return VIEWS.includes(h)?h:'cliente'};
+const PORTAL=/^\/hamburgueria\/?$/i.test(location.pathname)?'loja':/^\/motoboy\/?$/i.test(location.pathname)?'moto':'cliente';
+const cur=()=>{const h=(location.hash||'').slice(1);return VIEWS.includes(h)?h:(PORTAL==='loja'?'cozinha':PORTAL==='moto'?'motoboy':'cliente')};
 let drv=LS.get('lb_driver',null);
 const pinLoja=()=>S.settings.pinLoja||'1234';
 const pinOf=i=>(S.settings.pins||[])[i]||String(1111*(i+1));
 let sess=null;
 const setSess=x=>{sess=x};
 const isLoja=()=>sess&&sess.role==='loja', isMoto=()=>sess&&sess.role==='motoboy';
-const allowed=v=>isMoto()?v==='motoboy':v==='cliente'||v==='entrar'||(v==='cozinha'&&isLoja())||(v==='motoboy'&&(isLoja()||isMoto()));
+const allowed=v=>isLoja()?v!=='entrar':PORTAL==='cliente'?v==='cliente':PORTAL==='moto'?(isMoto()&&v==='motoboy'):false;
 let wanted=null,loginTab='loja',lastAssigned=-1;
 function renderLogin(){
   const dn=S.settings.drivers;
@@ -309,9 +310,13 @@ function renderLogin(){
 }
 function render(){
   let v=cur();
-  if(!allowed(v)&&sess){location.hash=isMoto()?'#motoboy':'#cozinha';return}
-  if(!allowed(v)){wanted=v;v='entrar'}
-  if(v==='entrar'&&sess&&allowed(wanted||'x'))v=wanted;
+  if(PORTAL==='cliente'&&location.hash==='#entrar'){location.replace('/hamburgueria');return}
+  if(PORTAL==='cliente'&&isMoto()){location.replace('/motoboy');return}
+  if(!allowed(v)){
+    if(isLoja()){location.hash='#cozinha';return}
+    if(PORTAL==='cliente'){location.hash='#cliente';return}
+    if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
+    v='entrar'}
   document.body.dataset.v=v;
   const nav=$('#nav');nav.hidden=!isLoja();$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=!(v==='cliente'&&!sess);if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
   $('#t-cliente').hidden=!isLoja();
@@ -528,7 +533,7 @@ document.addEventListener('click',e=>{
   if(a==='close')closeSheet();
   else if(a==='cat'){catOn=b.dataset.c;filter='';$('#q').value='';renderCliente();const t=document.getElementById('cat-'+catOn);if(t)t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}
   else if(a==='prod')openProduct(id);else if(a==='cart')openCart();else if(a==='checkout'){cust?openCheckout():openLogin('checkout')}else if(a==='login')openLogin();else if(a==='clogout'){sb.auth.signOut().then(()=>{toast('Você saiu');render()})}else if(a==='track')openTrack();else if(a==='where')openWhere();
-  else if(a==='copy')copy(b.dataset.t);else if(a==='logout'){sb.auth.signOut().then(()=>{setSess(null);location.hash='#cliente';render()})}
+  else if(a==='copy')copy(b.dataset.t);else if(a==='logout'){sb.auth.signOut().then(()=>{setSess(null);if(PORTAL==='cliente'){location.hash='#cliente'}render()})}
   else if(a==='st'){rpc('set_status',{oid:id,ns:b.dataset.s})}
   else if(a==='pix')rpc('confirm_pix',{oid:id});
   else if(a==='toggleOpen'){S.settings.open=!S.settings.open;saveSettings()}
@@ -592,22 +597,18 @@ function openLogin(next){
       applyUser(r.data.user);closeSheet();toast('Olá, '+cust.name.split(' ')[0]+'!');render();if(next==='checkout')openCheckout();else if(next==='group')createGroup()});
     const f=$('#cl-name',sh)||$('#cl-mail',sh);f.focus({preventScroll:true})});
 }
-let staffMode='in',staffWho='loja',motoList=null;
+let staffMode='in',staffWho=PORTAL==='moto'?'moto':'loja',motoList=null;
 function renderLogin(){
-  if(staffWho==='moto'){renderMotoLogin();return}
-  const up=staffMode==='up';
+  if(PORTAL==='moto'){renderMotoLogin();return}
+  const up=false;
   $('#login').innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
-   <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Área restrita à hamburgueria e aos motoboys. Clientes fazem pedidos na tela inicial.</div></div>
-   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-who="loja" aria-selected="true">Hamburgueria</button><button type="button" data-who="moto" aria-selected="false">Motoboy</button></div>
-   ${S.user&&!sess?`<div class="card" style="background:var(--warn-soft);border-color:transparent"><b>${esc(S.user.email)}</b><div class="mini">Esse e-mail ainda não tem acesso de equipe. Peça à hamburgueria para convidar este e-mail.</div><button class="btn sm ghost" data-act="clogout" style="margin-top:8px">Sair desta conta</button></div>`:''}
-   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-sm="in" aria-selected="${!up}">Entrar</button><button type="button" data-sm="up" aria-selected="${up}">Criar conta</button></div>
+   <div><b class="d" style="font-size:26px">Acesso da hamburgueria</b><div class="mini">Área exclusiva do dono e da equipe da loja.</div></div>
+   ${S.user&&!sess?`<div class="card" style="background:var(--warn-soft);border-color:transparent"><b>${esc(S.user.email)}</b><div class="mini">Este e-mail não tem acesso à hamburgueria.</div><button class="btn sm ghost" data-act="clogout" style="margin-top:8px">Sair desta conta</button></div>`:''}
    <form id="lf" class="f" style="gap:12px" novalidate>
     <div class="f"><label for="lf-m">E-mail</label><input id="lf-m" type="email" inputmode="email" autocomplete="email"></div>
     <div class="f"><label for="lf-p">Senha</label><input id="lf-p" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'Mínimo 6 caracteres':''}"><div class="err" id="lf-e" role="alert"></div></div>
-    <button class="btn" type="submit">${up?'Criar conta de equipe':'Entrar'}</button>
-    <button class="btn ghost" type="button" data-go="cliente">Voltar ao cardápio</button>
+    <button class="btn" type="submit">Entrar</button>
    </form></div>`;
-  $$('[data-sm]').forEach(b=>b.addEventListener('click',()=>{staffMode=b.dataset.sm;renderLogin()}));$$('[data-who]').forEach(b=>b.addEventListener('click',()=>{staffWho=b.dataset.who;renderLogin()}));
   $('#lf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#lf-e'),btn=$('#lf button[type=submit]'),em=$('#lf-m').value.trim(),pw=$('#lf-p').value;err.textContent='';err.style.color='';
     if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){err.textContent='Informe e-mail e senha (mínimo 6 caracteres).';return}
     btn.disabled=true;let r;
@@ -619,22 +620,19 @@ function renderLogin(){
     const cl=await sb.rpc('claim_staff');
     if(!cl.data){S.user=r.data.user;setSess(null);renderLogin();btn.disabled=false;return}
     await refreshRole();
-    const go=wanted&&allowed(wanted)?wanted:(isLoja()?'cozinha':'motoboy');wanted=null;
-    if(location.hash==='#'+go)render();else location.hash='#'+go});
+    if(!isLoja()){await sb.auth.signOut();setSess(null);S.user=null;err.textContent='Este acesso não é da hamburgueria.';btn.disabled=false;return}
+    if(location.hash==='#cozinha')render();else location.hash='#cozinha'});
   const lp=$('#lf-m');if(lp)lp.focus({preventScroll:true});
 }
 async function renderMotoLogin(){
   const box=$('#login');
   box.innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
-   <div><b class="d" style="font-size:26px">Acesso da equipe</b><div class="mini">Motoboy: entre com o login e a senha que a hamburgueria te passou. Você verá somente a tela de entregas.</div></div>
-   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-who="loja" aria-selected="false">Hamburgueria</button><button type="button" data-who="moto" aria-selected="true">Motoboy</button></div>
+   <div><b class="d" style="font-size:26px">Acesso do motoboy</b><div class="mini">Entre com o login e a senha que a hamburgueria te passou.</div></div>
    <form id="mf" class="f" style="gap:12px" novalidate>
     <div class="f"><label for="mf-n">Login</label><input id="mf-n" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="ex.: motoboy1"></div>
     <div class="f"><label for="mf-p">Senha</label><input id="mf-p" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"><div class="err" id="mf-e" role="alert"></div></div>
     <button class="btn" type="submit">Entrar</button>
-    <button class="btn ghost" type="button" data-go="cliente">Voltar ao cardápio</button>
    </form></div>`;
-  $$('[data-who]',box).forEach(b=>b.addEventListener('click',()=>{staffWho=b.dataset.who;renderLogin()}));
   $('#mf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#mf-e'),btn=$('#mf button[type=submit]');err.textContent='';
     const login=$('#mf-n').value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''),pw=$('#mf-p').value.trim();
     if(!/^motoboy\d+$/.test(login)){err.textContent='Login inválido. Use por exemplo: motoboy1';return}
@@ -747,7 +745,7 @@ const GRP={code:null,person:'',tokens:{},data:null,sig:''};
 (function(){const g=LS.get('lb_grp',null);if(g&&g.code){GRP.code=g.code;GRP.person=g.person||'';GRP.tokens=g.tokens||{}}})();
 const saveGrp=()=>LS.set('lb_grp',GRP.code?{code:GRP.code,person:GRP.person,tokens:GRP.tokens}:null);
 const groupActive=()=>!!(!sess&&GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
-const groupLink=()=>location.origin+location.pathname+'#grupo/'+GRP.code;
+const groupLink=()=>location.origin+'/#grupo/'+GRP.code;
 const grpSub=g=>(g.items||[]).reduce((a,it)=>a+(+it.total),0);
 function clearGroup(){GRP.code=null;GRP.person='';GRP.tokens={};GRP.data=null;GRP.sig='';saveGrp();emit()}
 async function refreshGroup(){if(!GRP.code)return;const{data,error}=await sb.rpc('group_get',{c:GRP.code});if(error)return;
@@ -898,5 +896,6 @@ function syncGeo(){const need=!!(sess&&(isMoto()||isLoja())&&S.user&&Object.valu
   else if(!need&&watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}}
 
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
+document.title=PORTAL==='loja'?'Hamburgueria · Lanches do Boy':PORTAL==='moto'?'Motoboy · Lanches do Boy':'Lanches do Boy Delivery';
 initData().then(()=>{loadEta();loadStorePos();if(!checkGroupHash()&&GRP.code)refreshGroup();renderNewItemForm()});render();{const b=document.getElementById('boot');if(b)b.remove()}
 })();
