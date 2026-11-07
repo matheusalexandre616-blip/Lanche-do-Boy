@@ -288,7 +288,7 @@ const pinOf=i=>(S.settings.pins||[])[i]||String(1111*(i+1));
 let sess=null;
 const setSess=x=>{sess=x};
 const isLoja=()=>sess&&sess.role==='loja', isMoto=()=>sess&&sess.role==='motoboy';
-const allowed=v=>isLoja()?v!=='entrar':PORTAL==='cliente'?v==='cliente':PORTAL==='moto'?(isMoto()&&v==='motoboy'):false;
+const allowed=v=>PORTAL==='cliente'?v==='cliente':isLoja()?v!=='entrar':PORTAL==='moto'?(isMoto()&&v==='motoboy'):false;
 let wanted=null,loginTab='loja',lastAssigned=-1;
 function renderLogin(){
   const dn=S.settings.drivers;
@@ -313,12 +313,12 @@ function render(){
   if(PORTAL==='cliente'&&location.hash==='#entrar'){location.replace('/hamburgueria');return}
   if(PORTAL==='cliente'&&isMoto()){location.replace('/motoboy');return}
   if(!allowed(v)){
-    if(isLoja()){location.hash='#cozinha';return}
     if(PORTAL==='cliente'){v='cliente'}else
+    if(isLoja()){location.hash='#cozinha';return}else
     if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
     else v='entrar'}
   document.body.dataset.v=v;
-  const nav=$('#nav');nav.hidden=!isLoja();$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=!(v==='cliente'&&!sess);if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
+  const nav=$('#nav');nav.hidden=!isLoja()||PORTAL==='cliente';$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=!(v==='cliente'&&!sess);if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
   $('#t-cliente').hidden=!isLoja();
   VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;{const t=$('#t-'+x);if(t)t.setAttribute('aria-selected',x===v)}});
   const os=Object.values(S.orders);
