@@ -192,7 +192,7 @@ async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data);notifyCustomer()}
 /* ------------------------------ som de pedido novo ------------------------------ */
 let actx=null,seenNew=null;
-function unlockAudio(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
+function unlockAudio(){try{const nw=!actx;actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();if(nw){const b=actx.createBuffer(1,1,22050),src=actx.createBufferSource();src.buffer=b;src.connect(actx.destination);src.start(0)}}catch(e){}}
 ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
 function chime(){unlockAudio();if(!actx)return;
   [0,.55,1.1].forEach(d=>[880,1175].forEach((f,i)=>{const t=actx.currentTime+d+i*.18,o=actx.createOscillator(),g=actx.createGain();
@@ -201,7 +201,7 @@ function chime(){unlockAudio();if(!actx)return;
 function alertNewOrders(rows){
   if(!isLoja()){seenNew=null;return}
   const now=rows.filter(r=>r.status==='novo').map(r=>r.id);
-  if(seenNew){const fresh=now.filter(id=>!seenNew.has(id));if(fresh.length){chime();toast(fresh.length>1?fresh.length+' pedidos novos!':'Pedido novo!')}}
+  if(seenNew){const fresh=now.filter(id=>!seenNew.has(id));if(fresh.length){chime();try{navigator.vibrate&&navigator.vibrate([300,120,300,120,300])}catch(e){}toast(fresh.length>1?fresh.length+' pedidos novos!':'Pedido novo!')}}
   seenNew=new Set(now)}
 async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();return}
   const{data}=await sb.from('staff').select('user_id,name,role,active').eq('role','motoboy').eq('active',true).order('created_at');
@@ -232,7 +232,7 @@ async function setSold(id){const v=!S.settings.soldOut[id];const so=Object.assig
 async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error){dbFail(error);return{error}}await loadOrders();return{data}}
 function upd(){}
 let reloadT=0;function reloadSoon(){clearTimeout(reloadT);reloadT=setTimeout(()=>{loadOrders();loadCatalog();loadLoc();loadStaff().then(()=>{loadOrders()})},350)}
-async function refreshRole(){
+async function refreshRole(){setTimeout(checkPush,300);
   if(!S.user){setSess(null);S.drivers=[];rebuildOrders();emit();return}
   const{data}=await sb.rpc('my_role');
   if(data==='loja'||data==='motoboy'){setSess({role:data,drv:0})}else setSess(null);
@@ -332,6 +332,7 @@ function render(){
   setB('#b-cliente',0);
   if(v==='cliente')renderCliente(mine);else if(v==='cozinha')renderCozinha();else if(v==='motoboy')renderMoto();else renderLogin();
   renderDock(v,mine);renderTabbar(v);
+  if(sess)setTimeout(syncGeo,0);
   syncSettings();
   if(trackOpen)renderTrack();
 }
@@ -453,7 +454,7 @@ function openCheckout(opts){
         customer:{name:v('ck-name'),phone:v('ck-phone')},
         addr:{cep:v('ck-cep'),street:v('ck-street'),number:v('ck-num'),bairro:v('ck-bairro'),city:v('ck-city')||'Belo Horizonte - MG',comp:v('ck-comp')},
         pay:{method:pay,change:pay==='dinheiro'?parseFloat(v('ck-change').replace(',','.'))||0:0}};
-      btn.textContent=PK?'Enviando...':'Calculando entrega...';(PK?Promise.resolve(null):geocode(`${v('ck-street')}, ${v('ck-num')}, ${v('ck-bairro')}, ${v('ck-city')||'Belo Horizonte - MG'}`)).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';if(G){delete payload.items;return sb.rpc('group_close',{c:GRP.code,p:payload})}return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
+      btn.textContent=PK?'Enviando...':'Calculando entrega...';(PK?Promise.resolve(null):geocodeAddr({street:v('ck-street'),num:v('ck-num'),bairro:v('ck-bairro'),city:v('ck-city')})).then(g=>{if(g){payload.addr.lat=g.lat;payload.addr.lng=g.lng}btn.textContent='Enviando...';if(G){delete payload.items;return sb.rpc('group_close',{c:GRP.code,p:payload})}return sb.rpc('create_order',{p:payload})}).then(async({data,error})=>{
         if(error){btn.disabled=false;btn.textContent='Enviar pedido';dbFail(error);return}
         const o=rowToOrder(data);S.orders[o.id]=o;
         if(o.mode!=='retirada')LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
@@ -936,6 +937,48 @@ document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb
   window.addEventListener('scroll',()=>{if(tk)return;tk=true;requestAnimationFrame(()=>{tk=false;sync()})},{passive:true});
   window.addEventListener('resize',sync);setTimeout(sync,600);new MutationObserver(sync).observe(top,{attributes:true,attributeFilter:['class']})})();
 
+/* ------------------------------ geocodificação com tentativas ------------------------------ */
+async function geocodeAddr(a){const city=String(a.city||'Belo Horizonte - MG').split(' - ')[0].trim()||'Belo Horizonte';
+  const tries=[`${a.street}, ${a.num}, ${city}, Brasil`,`${a.street}, ${city}, Brasil`];
+  for(let i=0;i<tries.length;i++){if(i)await new Promise(r=>setTimeout(r,1100));const g=await geocode(tries[i]);if(g&&kmBetween(g,storePos)<60)return g}
+  const k=Object.keys(BM).find(n=>n.toLowerCase()===String(a.bairro||'').trim().toLowerCase());
+  return k&&BM[k].lat!=null?{lat:BM[k].lat,lng:BM[k].lng}:null}
+
+/* ------------------------------ alertas de pedido novo (som + notificação no celular) ------------------------------ */
+const VAPID_PUB='BCVOE3hS27nm2ZliUXWB83FRTbmElghRDOnn9V4r-88FtNzwkRDA_mMq4JG1AhWKLPmv7HkxWW_0l02CzJEY7AM';
+const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+let pushState='?';
+function b64u(s){const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))}
+async function checkPush(){if(!isLoja())return;
+  if(!pushOK()){pushState=isIOS()&&!standalone()?'ios':'nosupport';renderAlertBar();return}
+  if(Notification.permission==='denied'){pushState='denied';renderAlertBar();return}
+  if(Notification.permission!=='granted'){pushState='off';renderAlertBar();return}
+  try{const reg=await navigator.serviceWorker.register('/sw.js');let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUB)});
+    const j=sub.toJSON();const{error}=await sb.rpc('push_subscribe',{ep:j.endpoint,k:j.keys.p256dh,a:j.keys.auth,ua:navigator.userAgent.slice(0,200)});pushState=error?'err':'on'}catch(e){console.warn(e);pushState='err'}
+  renderAlertBar()}
+async function enablePush(btn){unlockAudio();chime();
+  if(!pushOK()){toast(isIOS()?'No iPhone, adicione o app à Tela de Início para receber notificações':'Este navegador não recebe notificações. Use o Chrome.');return}
+  btn.disabled=true;const perm=await Notification.requestPermission();btn.disabled=false;
+  if(perm!=='granted'){pushState=perm==='denied'?'denied':'off';renderAlertBar();toast('Permita as notificações para receber os pedidos');return}
+  await checkPush();if(pushState==='on')toast('Alertas ligados! Toque em Testar para conferir')}
+async function testPush(btn){btn.disabled=true;try{const{data:{session}}=await sb.auth.getSession();
+  const r=await fetch(SB_URL+'/functions/v1/notify-order',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(session&&session.access_token)},body:'{"test":true}'});
+  const j=await r.json().catch(()=>({}));toast(r.ok&&j.sent?'Notificação de teste enviada. Ela chega em alguns segundos.':(j.error||'Não foi possível enviar o teste'))}catch(e){toast('Sem conexão para enviar o teste')}btn.disabled=false;chime()}
+function renderAlertBar(){const el=$('#alertBar');if(!el)return;if(!isLoja()){el.innerHTML='';return}
+  const st=pushState;let h;
+  if(st==='on')h=`<div class="geo on"><span class="geo-dot"></span><div style="flex:1"><b>🔔 Alertas ligados neste celular</b><div class="mini">Pedido novo apita e chega notificação, mesmo com o app fechado.</div></div><button class="btn sm ghost" data-act="ptest">Testar</button></div>`;
+  else if(st==='ios')h=`<div class="geo off"><div><b>🔔 Receber pedidos com o iPhone bloqueado</b><div class="mini">1. Toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b>.<br>2. Abra a hamburgueria pelo ícone novo e toque em <b>Ativar alertas</b>.<br>Enquanto isso, com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
+  else if(st==='denied')h=`<div class="geo off"><div><b>🔕 Notificações bloqueadas</b><div class="mini">Libere nas configurações do celular: Ajustes → Notificações → ${isIOS()?'Boy Loja':'Chrome / navegador'} → Permitir. Depois recarregue esta página.</div></div></div>`;
+  else if(st==='nosupport')h=`<div class="geo off"><div><b>🔔 Alertas</b><div class="mini">Este navegador não recebe notificações. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
+  else if(st==='err')h=`<div class="geo off"><div style="flex:1"><b>🔔 Não foi possível ligar os alertas agora</b><div class="mini">Verifique a internet e tente de novo. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="pon">Tentar de novo</button></div>`;
+  else h=`<div class="geo wait"><div style="flex:1"><b>🔔 Ative os alertas de pedido</b><div class="mini">O celular apita e mostra a notificação a cada pedido novo, mesmo com o app fechado.</div></div><button class="btn sm" data-act="pon">Ativar alertas</button></div>`;
+  el.innerHTML=h}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act=pon],[data-act=ptest],[data-act=psound]');if(!b)return;const a=b.dataset.act;
+  if(a==='pon')enablePush(b);else if(a==='ptest')testPush(b);else{unlockAudio();chime();toast('Assim o celular vai apitar a cada pedido novo')}});
+
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
 S.loc=S.loc||{};const maps={};
@@ -983,10 +1026,11 @@ function updateTrackLive(){
 setInterval(()=>{if(trackOpen&&S.user)loadLoc()},8000);setInterval(()=>{updateTrackLive()},30000);setInterval(loadEta,60000);
 let watchId=null,lastSent=0;
 let geoState='off',geoErr='',wakeLock=null;
-function myRota(){return !!(sess&&(isMoto()||isLoja())&&S.user&&Object.values(S.orders).some(o=>o.status==='rota'&&o.drvId===S.user.id))}
+function geoDriverId(){if(isMoto())return S.user&&S.user.id;if(isLoja()&&cur()==='motoboy'){const d=S.drivers[drv==null?0:drv];return d&&d.id}return null}
+function myRota(){const id=geoDriverId();return !!(sess&&id&&Object.values(S.orders).some(o=>o.status==='rota'&&o.drvId===id))}
 function startGeo(force){if(watchId!=null||!navigator.geolocation)return;if(!force&&!myRota())return;
   geoState='wait';watchId=navigator.geolocation.watchPosition(p=>{if(geoState!=='on'){geoState='on';geoErr='';if($('#v-motoboy')&&!$('#v-motoboy').hidden)renderMoto()}
-      const n=Date.now();if(n-lastSent<8000)return;lastSent=n;sb.rpc('post_location',{la:p.coords.latitude,lo:p.coords.longitude}).then(r=>{if(r.error)console.warn(r.error.message)})},
+      const n=Date.now();if(n-lastSent<8000)return;lastSent=n;sb.rpc('post_location',{la:p.coords.latitude,lo:p.coords.longitude,drv:isLoja()?geoDriverId():null}).then(r=>{if(r.error)console.warn(r.error.message)})},
     e=>{geoState='err';geoErr=e&&e.code===1?'denied':'unavailable';navigator.geolocation.clearWatch(watchId);watchId=null;if($('#v-motoboy')&&!$('#v-motoboy').hidden)renderMoto();
       toast(geoErr==='denied'?'Permita a localização para o cliente acompanhar a entrega':'Não foi possível pegar sua localização. Verifique o GPS.')},
     {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
@@ -1001,6 +1045,7 @@ function geoBanner(){if(!myRota())return '';
   return `<div class="geo off"><div><b>📍 Localização desligada</b><div class="mini">${geoErr==='denied'?'O celular bloqueou a localização. No iPhone: Ajustes → Privacidade → Serviços de Localização → Safari → "Ao Usar o App". Depois toque abaixo.':'Ligue a localização para o cliente acompanhar você no mapa.'}</div></div><button class="btn sm" data-act="geoon">Ligar localização</button></div>`}
 
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
+{const ml=document.createElement('link');ml.rel='manifest';ml.href=PORTAL==='loja'?'/manifest-loja.webmanifest':PORTAL==='moto'?'/manifest-moto.webmanifest':'/manifest.webmanifest';document.head.appendChild(ml)}
 document.title=PORTAL==='loja'?'Hamburgueria · Lanches do Boy':PORTAL==='moto'?'Motoboy · Lanches do Boy':'Lanches do Boy Delivery';
 initData().then(()=>{loadEta();loadStorePos();if(!checkGroupHash()&&GRP.code)refreshGroup();renderNewItemForm()});render();{const b=document.getElementById('boot');if(b)b.remove()}
 })();

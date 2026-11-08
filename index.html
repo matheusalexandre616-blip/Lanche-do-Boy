@@ -5,6 +5,11 @@
 <base href="/">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#C8221A">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Lanches do Boy Delivery</title>
 <script defer src="supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -357,6 +362,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
   </section>
 
   <section class="view wrap wide" id="v-cozinha" hidden>
+    <div id="alertBar" style="margin-bottom:10px"></div>
     <div class="stats" id="stats"></div>
     <div class="chips" style="margin:-4px 0 12px"><button class="chip" data-k="cardapioPanel">🍔 Cardápio e preços</button><button class="chip" data-k="extrasPanel">➕ Acréscimos</button><button class="chip" data-k="ajustesPanel">⚙️ Ajustes da loja</button><button class="chip" data-k="equipePanel">🛵 Equipe e motoboys</button></div>
     <div class="board" id="board"></div>
