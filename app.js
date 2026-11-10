@@ -567,11 +567,11 @@ setInterval(()=>{if(cur()==='cozinha'&&!document.hidden&&!$('#layer').children.l
 /* ------------------------------ login (Supabase Auth) ------------------------------ */
 const BACKSVG='<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
 async function signUpNoMail(em,pw,meta){
-  try{const rs=await fetch(SB_URL+'/functions/v1/signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({email:em,password:pw,name:meta.name,phone:meta.phone})});
+  try{const rs=await fetch(SB_URL+'/functions/v1/signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({email:em,password:pw,name:meta.name,phone:meta.phone,captcha:tsToken})});tsReset();
     const j=await rs.json().catch(()=>({}));
     if(!rs.ok)return{error:{message:j.error||'Não foi possível criar a conta.'}};
     return sb.auth.signInWithPassword({email:em,password:pw})
-  }catch(x){return sb.auth.signUp({email:em,password:pw,options:{data:meta}})}
+  }catch(x){return{error:{message:'Sem conexão. Verifique a internet e tente de novo.'}}}
 }
 let authMode='in';
 function openLogin(next){
@@ -583,7 +583,10 @@ function openLogin(next){
   <div class="f"><label for="cl-phone">WhatsApp</label><input id="cl-phone" inputmode="tel" autocomplete="tel" maxlength="15" placeholder="(31) 99999-9999" value="${esc(fmtPhone(c.phone||''))}"></div>`:''}
   <div class="f"><label for="cl-mail">E-mail</label><input id="cl-mail" type="email" inputmode="email" autocomplete="email"></div>
   <div class="f"><label for="cl-pw">Senha</label><input id="cl-pw" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'Mínimo 6 caracteres':''}"><div class="err" id="cl-err" role="alert"></div></div>
-  <button class="btn" type="submit">${up?'Criar conta e continuar':'Entrar'}</button></form>`,sh=>{
+  ${up&&TS_SITE?'<div id="cl-ts" class="tsbox"></div>':''}
+  <button class="btn" type="submit">${up?'Criar conta e continuar':'Entrar'}</button>
+  ${up?'<p class="mini" style="margin:0;text-align:center">Ao criar a conta você concorda com a <a href="/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</p>':''}</form>`,sh=>{
+    if(up&&TS_SITE)tsMount($('#cl-ts',sh));
     const ph=$('#cl-phone',sh);if(ph)ph.addEventListener('input',e=>{e.target.value=fmtPhone(e.target.value)});
     $$('[data-am]',sh).forEach(b=>b.addEventListener('click',()=>{authMode=b.dataset.am;openLogin(next)}));
     $('#cl',sh).addEventListener('submit',async e=>{e.preventDefault();const err=$('#cl-err',sh),btn=$('#cl button[type=submit]',sh);
@@ -593,6 +596,7 @@ function openLogin(next){
       btn.disabled=true;let r;
       if(up){const n=$('#cl-name',sh).value.trim(),p=$('#cl-phone',sh).value.trim();
         if(n.length<2||digits(p).length<10){err.textContent='Informe seu nome e o WhatsApp com DDD.';btn.disabled=false;return}
+        if(TS_SITE&&!tsToken){err.textContent='Confirme que você não é um robô.';btn.disabled=false;return}
         r=await signUpNoMail(em,pw,{name:n,phone:p});
         if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.';btn.disabled=false;return}}
       else r=await sb.auth.signInWithPassword({email:em,password:pw});
@@ -920,7 +924,9 @@ function openAccount(){if(!cust){openLogin();setTb('account');return}setTb('acco
    <button class="btn ghost acc-row" data-tb-go="orders"><span>📦 Meus pedidos</span><span class="mini">${act?act+' em andamento · ':''}${tot} no total</span></button>
    <button class="btn ghost acc-row" data-tb-go="group"><span>👥 Pedido em grupo</span><span class="mini">${groupActive()?'Grupo aberto':'Criar'}</span></button>
    <button class="btn ghost acc-row" data-act="where"><span>📍 Endereço da loja</span><span class="mini">Como chegar</span></button>
-   <button class="btn ghost danger" data-act="clogout">Sair da conta</button></div>`,sh=>{$$('[data-tb-go]',sh).forEach(b=>b.addEventListener('click',()=>tbGo(b.dataset.tbGo)))})}
+   <button class="btn ghost danger" data-act="clogout">Sair da conta</button>
+   <a class="btn ghost acc-row" href="/privacidade.html" target="_blank" rel="noopener"><span>🔒 Privacidade e meus dados</span><span class="mini">Ler</span></a>
+   <button class="btn ghost danger" data-act="accdel" style="font-size:13.5px">Excluir minha conta</button></div>`,sh=>{$$('[data-tb-go]',sh).forEach(b=>b.addEventListener('click',()=>tbGo(b.dataset.tbGo)))})}
 function tbGo(k){
   if(k==='home'){closeSheet();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});return}
   if(k==='orders'){openTrack();setTb('orders');return}
@@ -978,6 +984,54 @@ function renderAlertBar(){const el=$('#alertBar');if(!el)return;if(!isLoja()){el
   el.innerHTML=h}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act=pon],[data-act=ptest],[data-act=psound]');if(!b)return;const a=b.dataset.act;
   if(a==='pon')enablePush(b);else if(a==='ptest')testPush(b);else{unlockAudio();chime();toast('Assim o celular vai apitar a cada pedido novo')}});
+
+/* ------------------------------ Turnstile (não sou robô) ------------------------------ */
+const TS_SITE='';let tsToken='',tsWidget=null,tsP=null;
+function tsLoad(){if(window.turnstile)return Promise.resolve();return tsP||(tsP=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';sc.async=true;sc.onload=res;sc.onerror=()=>{tsP=null;rej()};document.head.appendChild(sc)}))}
+async function tsMount(el){if(!TS_SITE||!el)return;tsToken='';try{await tsLoad();tsWidget=turnstile.render(el,{sitekey:TS_SITE,language:'pt-br',theme:'auto',callback:t=>{tsToken=t},'expired-callback':()=>{tsToken=''},'error-callback':()=>{tsToken=''}})}catch(e){el.textContent='Não foi possível carregar a verificação. Recarregue a página.'}}
+function tsReset(){tsToken='';try{if(window.turnstile&&tsWidget!=null)turnstile.reset(tsWidget)}catch(e){}}
+
+/* ------------------------------ LGPD: excluir conta ------------------------------ */
+async function deleteAccount(b){if(!confirmTap(b,'Toque de novo para excluir para sempre'))return;b.disabled=true;
+  try{const{data:{session}}=await sb.auth.getSession();
+    const r=await fetch(SB_URL+'/functions/v1/delete-account',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(session&&session.access_token)},body:'{}'});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){b.disabled=false;toast(j.error||'Não foi possível excluir agora');return}
+    await sb.auth.signOut().catch(()=>{});LS.set('lb_cust',null);cust=null;S.user=null;closeSheet();toast('Sua conta e seus dados pessoais foram excluídos');render()}
+  catch(e){b.disabled=false;toast('Sem conexão. Tente de novo.')}}
+
+/* ------------------------------ cópia de segurança ------------------------------ */
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+async function fetchAll(q){const out=[];for(let i=0;;i+=1000){const{data,error}=await q().range(i,i+999);if(error)throw error;out.push(...data);if(data.length<1000)break}return out}
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+async function backupJSON(b){b.disabled=true;try{
+  const[products,extras,zones,photos,orders]=await Promise.all([fetchAll(()=>sb.from('products').select('*').order('id')),fetchAll(()=>sb.from('extras').select('*').order('set_id')),fetchAll(()=>sb.from('zones').select('*').order('bairro')),fetchAll(()=>sb.from('photos').select('*').order('product_id')),fetchAll(()=>sb.from('orders').select('*').order('created_at'))]);
+  const{data:settings}=await sb.from('store_settings').select('open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle();
+  const{data:staff}=await sb.from('staff').select('name,role,active');
+  dl(`lanches-do-boy-backup-${stamp()}.json`,JSON.stringify({app:'lanches-do-boy',version:1,exported_at:new Date().toISOString(),settings,products,extras,zones,photos,staff,orders},null,1),'application/json');
+  toast(`Cópia baixada: ${products.length} itens, ${extras.length} acréscimos, ${orders.length} pedidos`)}catch(e){dbFail(e)}b.disabled=false}
+async function backupCSV(b){b.disabled=true;try{
+  const rows=await fetchAll(()=>sb.from('orders').select('code,created_at,status,mode,customer,addr,items,subtotal,fee,total,pay,pix_paid,hidden_at').order('created_at'));
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const head=['Pedido','Data','Status','Tipo','Cliente','Telefone','Bairro','Itens','Subtotal','Taxa','Total','Pagamento','Pix confirmado','Excluído'];
+  const lines=rows.map(o=>[o.code,new Date(o.created_at).toLocaleString('pt-BR'),STATUS[o.status]||o.status,o.mode==='retirada'?'Retirada':'Entrega',o.customer&&o.customer.name,o.customer&&o.customer.phone,o.addr&&o.addr.bairro,(o.items||[]).map(i=>i.qty+'x '+i.name+(i.person?' ('+i.person+')':'')).join(' | '),String(o.subtotal).replace('.',','),String(o.fee).replace('.',','),String(o.total).replace('.',','),o.pay&&o.pay.method,o.pix_paid?'sim':'',o.hidden_at?'sim':''].map(q).join(';'));
+  dl(`pedidos-lanches-do-boy-${stamp()}.csv`,'﻿'+[head.map(q).join(';'),...lines].join('\r\n'),'text/csv;charset=utf-8');
+  toast(rows.length+' pedidos exportados')}catch(e){dbFail(e)}b.disabled=false}
+async function restoreMenu(file){let d;try{d=JSON.parse(await file.text())}catch(e){toast('Arquivo inválido');return}
+  if(!d||d.app!=='lanches-do-boy'||!Array.isArray(d.products)){toast('Este arquivo não é uma cópia do Lanches do Boy');return}
+  const ok=v=>v&&typeof v==='object';
+  const P_=d.products.filter(p=>ok(p)&&p.id&&p.name&&p.cat&&isFinite(+p.price)).map(p=>({id:String(p.id).slice(0,60),cat:String(p.cat).slice(0,30),name:String(p.name).slice(0,80),price:+p.price,tag:p.tag||null,descr:String(p.descr||'').slice(0,400),opts:!!p.opts,extras_set:p.extras_set||null,sold_out:!!p.sold_out,sort:+p.sort||0}));
+  const X_=(d.extras||[]).filter(x=>ok(x)&&x.set_id&&x.id&&x.name&&isFinite(+x.price)).map(x=>({set_id:String(x.set_id).slice(0,30),id:String(x.id).slice(0,60),name:String(x.name).slice(0,60),price:+x.price}));
+  const Z_=(d.zones||[]).filter(z=>ok(z)&&z.bairro&&isFinite(+z.fee)).map(z=>Object.assign({},z,{fee:+z.fee}));
+  const Ph=(d.photos||[]).filter(p=>ok(p)&&p.product_id&&typeof p.data==='string'&&p.data.startsWith('data:image/'));
+  const st=$('#bk-st');st.textContent='Restaurando…';
+  try{for(const[t,rows,oc]of[['products',P_,'id'],['extras',X_,'set_id,id'],['zones',Z_,'bairro']]){for(let i=0;i<rows.length;i+=200){const{error}=await sb.from(t).upsert(rows.slice(i,i+200),{onConflict:oc});if(error)throw error}}
+    for(const p of Ph){if(P_.some(x=>x.id===p.product_id)){const{error}=await sb.from('photos').upsert(p,{onConflict:'product_id'});if(error)throw error}}
+    st.textContent=`Restaurado: ${P_.length} itens, ${X_.length} acréscimos, ${Z_.length} bairros, ${Ph.length} fotos.`;toast('Cardápio restaurado');await loadCatalog()}
+  catch(e){st.textContent='';dbFail(e)}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act=bkjson],[data-act=bkcsv],[data-act=bkrest],[data-act=accdel]');if(!b)return;const a=b.dataset.act;
+  if(a==='bkjson')backupJSON(b);else if(a==='bkcsv')backupCSV(b);else if(a==='accdel')deleteAccount(b);else{if(!confirmTap(b,'Toque de novo e escolha o arquivo'))return;$('#bk-file').click()}});
+document.addEventListener('change',e=>{if(e.target.id==='bk-file'&&e.target.files[0]){restoreMenu(e.target.files[0]);e.target.value=''}});
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
