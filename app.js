@@ -45,7 +45,7 @@ function orderMsg(o,intro){
   o.items.forEach(it=>{if(it.person&&it.person!==lastP){lastP=it.person;L.push('👤 *'+it.person+'*','')}L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
     (it.extras||[]).forEach(x=>L.push('  (1x) '+x));(it.removed||[]).forEach(x=>L.push('  (1x) Retirar '+x));if(it.note)L.push('  Obs.: '+it.note);
     L.push('','Subtotal do item: '+money(it.unit*it.qty),DASH,'')});
-  const PK=o.mode==='retirada';
+  const PK=isPick(o);
   if(PK)L.push(LINE,'▶️ *Retirada no local*','','Nome: '+o.customer.name,'Retirar em: '+STORE.addr.replace(', Brasil',''),'WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: grátis (retirada)','','🕐 Pronto para retirar em aprox. '+etaRange(o.eta),'');
   else{L.push(LINE,'▶️ *Dados para entrega*','',
     'Nome: '+o.customer.name,'Endereço: '+o.addr.street+', nº '+o.addr.number,'Bairro: '+o.addr.bairro+(o.addr.cep?'\nCEP: '+o.addr.cep:''));
@@ -182,7 +182,7 @@ const heroBurger=()=>burger(['patty','bacon','egg','cheese','lettuce','tomato'],
 /* ------------------------------ Supabase ------------------------------ */
 const SB_URL='https://dvrupqsedmgqpfmoyivm.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2cnVwcXNlZG1ncXBmbW95aXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NTg1NTYsImV4cCI6MjEwOTAzNDU1Nn0.t3sVs6P1mLmaQy6WEodAeoGxtQmD5eFldzXO2LOzgxo';
 const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-const S={orders:{},rows:[],settings:{open:true,pix:'',pixType:'cnpj',pixName:'LANCHES DO BOY',pixCity:'BELO HORIZONTE',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
+const S={orders:{},rows:[],settings:{open:true,autoHours:false,hours:null,pausedUntil:null,pix:'',pixType:'cnpj',pixName:'LANCHES DO BOY',pixCity:'BELO HORIZONTE',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
 const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega',grp:r.group_id||null}};
@@ -210,19 +210,19 @@ async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();retur
   rebuildOrders()}
 function setList(arr,items){arr.length=0;items.forEach(x=>arr.push(x))}
 async function loadCatalog(){
-  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*').order('name'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
+  const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*').order('name'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng,auto_hours,hours,paused_until').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
   if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||''})));
     Object.keys(P).forEach(k=>delete P[k]);MENU.forEach(m=>P[m.id]=m);
     const so={};p.data.forEach(r=>{if(r.sold_out)so[r.id]=true});S.settings.soldOut=so}
   if(e.data){const by=k=>e.data.filter(x=>x.set_id===k).map(x=>({id:x.id,n:x.name,p:+x.price}));
     setList(EXTRAS,by('default'));setList(EXTRAS_MAC,by('mac'));setList(EXTRAS_MISTO,by('misto'));setList(EXTRAS_OMELETE,by('omelete'))}
   if(z.data&&z.data.length){setList(BAIRROS,z.data.map(r=>({n:r.bairro,fee:+r.fee,lat:r.lat,lng:r.lng})));Object.keys(BM).forEach(k=>delete BM[k]);BAIRROS.forEach(b=>BM[b.n]=b)}
-  if(st.data){S.settings.open=st.data.open;S.settings.pix=st.data.pix||'';S.settings.pixType=st.data.pix_type||'cnpj';S.settings.pixName=st.data.pix_name||'LANCHES DO BOY';S.settings.pixCity=st.data.pix_city||'BELO HORIZONTE';S.settings.wa=st.data.wa||'';S.settings.feeDefault=+st.data.fee_default}
+  if(st.data){S.settings.open=st.data.open;S.settings.pix=st.data.pix||'';S.settings.autoHours=!!st.data.auto_hours;S.settings.hours=st.data.hours||null;S.settings.pausedUntil=st.data.paused_until?Date.parse(st.data.paused_until):null;S.settings.pixType=st.data.pix_type||'cnpj';S.settings.pixName=st.data.pix_name||'LANCHES DO BOY';S.settings.pixCity=st.data.pix_city||'BELO HORIZONTE';S.settings.wa=st.data.wa||'';S.settings.feeDefault=+st.data.fee_default}
   if(ph.data){const m={};ph.data.forEach(r=>m[r.product_id]=r.data);S.photos=m}
   emit()}
 async function saveOrder(){}
 async function removeOrder(){}
-async function saveSettings(){emit();const{error}=await sb.from('store_settings').update({open:S.settings.open,pix:S.settings.pix,pix_type:S.settings.pixType,pix_name:S.settings.pixName,pix_city:S.settings.pixCity,wa:S.settings.wa,fee_default:S.settings.feeDefault}).eq('id',1);if(error)dbFail(error)}
+async function saveSettings(){emit();const{error}=await sb.from('store_settings').update({open:S.settings.open,auto_hours:S.settings.autoHours,hours:S.settings.hours||DEF_HOURS,paused_until:S.settings.pausedUntil?new Date(S.settings.pausedUntil).toISOString():null,pix:S.settings.pix,pix_type:S.settings.pixType,pix_name:S.settings.pixName,pix_city:S.settings.pixCity,wa:S.settings.wa,fee_default:S.settings.feeDefault}).eq('id',1);if(error)dbFail(error)}
 async function savePhoto(id,img){S.photos[id]=img;emit();const{error}=await sb.from('photos').upsert({product_id:id,data:img});if(error)dbFail(error)}
 async function savePrice(id){const inp=$('#pr-'+id);if(!inp)return;const v=Math.round(parseFloat(inp.value.replace(/\./g,'').replace(',','.'))*100)/100;
   if(!(v>0&&v<1000)){toast('Preço inválido. Use por exemplo 22,90');return}
@@ -347,7 +347,7 @@ function renderCliente(){
   const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
   renderGroupBar();renderOrderStatus();
   $('#feeMin').textContent='a partir de '+money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
-  const open=S.settings.open;const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':'Loja fechada';
+  const open=storeOpen();const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':(storeNext()||'Loja fechada');
   $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
   const f=filter.trim().toLowerCase();
   const list=MENU.filter(p=>!f||(p.name+' '+p.desc).toLowerCase().includes(f));
@@ -373,7 +373,7 @@ function renderDock(v,mine){
 /* ------------------------------ sheets ------------------------------ */
 let trackOpen=false;
 function openSheet(html,onReady){const L=$('#layer');L.innerHTML=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;document.body.style.overflow='hidden';trackOpen=false;if(onReady)onReady($('.sheet',L))}
-function closeSheet(){$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false;setTb('home')}
+function closeSheet(){if(posOn&&$('#layer .sheet')&&!$('#pos')){openPOS();return}posOn=false;$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false;setTb('home')}
 function openProduct(id){
   const p=P[id];let qty=1,note='';const ex=new Set(),rm=new Set();
   const list=EXTRA_SETS[p.extras]||EXTRAS;
@@ -387,9 +387,10 @@ function openProduct(id){
     const tot=()=>{$('#ptot',sh).textContent=money(calc()*qty)};tot();
     sh.addEventListener('change',e=>{const t=e.target;if(t.dataset.ex){t.checked?ex.add(t.dataset.ex):ex.delete(t.dataset.ex);t.closest('.opt').classList.toggle('on',t.checked)}if(t.dataset.rm){t.checked?rm.add(t.dataset.rm):rm.delete(t.dataset.rm);t.closest('.opt').classList.toggle('on',t.checked)}tot()});
     sh.addEventListener('click',e=>{const q=e.target.closest('[data-q]');if(q){qty=Math.max(1,Math.min(20,qty+ +q.dataset.q));$('#pq',sh).textContent=qty;tot()}});
-    if(groupActive())$('#padd span',sh).textContent='Adicionar ao grupo';
+    if(posOn)$('#padd span',sh).textContent='Adicionar ao pedido';else if(groupActive())$('#padd span',sh).textContent='Adicionar ao grupo';
     $('#padd',sh).addEventListener('click',()=>{note=$('#pn',sh).value.trim();
       const exs=[...ex].sort(),rms=[...rm].sort(),key=[id,exs,rms,note].join('|');
+      if(posOn){posAdd({pid:id,name:p.name,unit:calc()/qty,qty,extras:exs,xn:exs.map(e=>list.find(x=>x.id===e).n),removed:rms,note});openPOS();return}
       if(groupActive()){groupAdd($('#padd',sh),id,qty,exs,rms,note);return}
       const hit=cart.find(l=>l.key===key);if(hit)hit.qty+=qty;else cart.push({key,pid:id,name:p.name,qty,total:calc(),extras:exs.map(e=>list.find(x=>x.id===e).n),xids:exs,removed:rms,note});
       saveCart();closeSheet();toast('Adicionado à sacola');emit()});
@@ -400,7 +401,7 @@ function openCart(){
   const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Sua sacola</h2></div><div class="bd">
   ${cart.map((l,i)=>`<div class="line"><div><b>${l.qty}× ${esc(l.name)}</b>${l.extras.length?`<small>+ ${esc(l.extras.join(', '))}</small>`:''}${l.removed.length?`<small>sem ${esc(l.removed.join(', '))}</small>`:''}${l.note?`<small>“${esc(l.note)}”</small>`:''}<div class="stepper" style="margin-top:8px"><button data-ci="${i}" data-d="-1" aria-label="Menos">−</button><span>${l.qty}</span><button data-ci="${i}" data-d="1" aria-label="Mais">+</button></div></div><b>${money(l.total*l.qty)}</b></div>`).join('')}
   <div class="sum"><div><span>Subtotal</span><span>${money(cartSub())}</span></div><div class="mini"><span>Na próxima etapa escolha entrega ou retirada no local (sem taxa).</span></div></div>
-  <button class="btn" data-act="checkout" ${S.settings.open?'':'disabled'}>${S.settings.open?'Continuar':'Loja fechada no momento'}</button></div>`;
+  <button class="btn" data-act="checkout" ${storeOpen()?'':'disabled'}>${storeOpen()?'Continuar':'Loja fechada no momento'}</button></div>`;
   openSheet(html,sh=>sh.addEventListener('click',e=>{const b=e.target.closest('[data-ci]');if(!b)return;const l=cart[+b.dataset.ci];l.qty+= +b.dataset.d;if(l.qty<1)cart.splice(+b.dataset.ci,1);saveCart();emit();openCart()}));
 }
 function openCheckout(opts){
@@ -425,7 +426,7 @@ function openCheckout(opts){
    <label class="opt"><span id="pl-car">Cartão na entrega</span><input type="radio" name="pay" value="cartao"></label></div>
   <div class="f" id="chg" hidden><label for="ck-change">Troco para quanto?</label><input id="ck-change" inputmode="decimal" placeholder="Ex.: 50"></div>
   <div class="sum" id="ck-sum"></div>
-  <button class="btn" type="submit" ${S.settings.open?'':'disabled'}>${S.settings.open?'Enviar pedido':'Loja fechada no momento'}</button></form>`;
+  <button class="btn" type="submit" ${storeOpen()?'':'disabled'}>${storeOpen()?'Enviar pedido':'Loja fechada no momento'}</button></form>`;
   openSheet(html,sh=>{
     const pick=()=>{const m=$('[name=mode]:checked',sh);return !!m&&m.value==='retirada'};
     const fee=()=>pick()?0:feeFor($('#ck-bairro',sh).value);
@@ -474,7 +475,7 @@ function renderTrackBase(){
   const t=TRK_T||$('#trk');if(!t)return;
   const my=myOrders();
   if(!my.length){t.innerHTML='<div class="empty">Você ainda não fez pedidos.</div>';return}
-  t.innerHTML=my.map(o=>{const PK=o.mode==='retirada',stp=PK?['novo','preparo','pronto','entregue']:['novo','preparo','pronto','rota','entregue'],lab=PK?['Recebido','Preparando','Pronto p/ retirar','Retirado']:['Recebido','Preparando','Pronto','A caminho','Entregue'];const i=stp.indexOf(o.status);const can=o.status==='cancelado';
+  t.innerHTML=my.map(o=>{const PK=isPick(o),stp=PK?['novo','preparo','pronto','entregue']:['novo','preparo','pronto','rota','entregue'],lab=PK?['Recebido','Preparando','Pronto p/ retirar','Retirado']:['Recebido','Preparando','Pronto','A caminho','Entregue'];const i=stp.indexOf(o.status);const can=o.status==='cancelado';
     return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="d" style="font-size:20px">Pedido #${o.code}</b><span class="pill ${can?'closed':o.status==='entregue'?'':'warn'}">${PK&&o.status==='entregue'?'Retirado':PK&&o.status==='pronto'?'Pronto p/ retirar':STATUS[o.status]}</span></div>
     ${can?'<p class="mini">A hamburgueria não pôde aceitar este pedido. Chame no WhatsApp da loja.</p>':`<div class="steps" style="grid-template-columns:repeat(${lab.length},1fr)">${lab.map((l,k)=>`<div class="${k<=i?'on':''}">${l}</div>`).join('')}</div>`}
     ${can?'':trackExtra(o)}<ul style="margin:8px 0;padding-left:18px">${o.items.map(it=>`<li>${it.qty}× ${esc(it.name)}</li>`).join('')}</ul>
@@ -492,20 +493,22 @@ function orderCard(o){
   if(o.pay.method==='pix'&&!o.pixPaid&&o.status!=='cancelado')a+=`<button class="btn sm ghost" data-act="pix" data-id="${o.id}">Confirmar Pix recebido</button>`;
   if(o.status==='novo')a+=`<button class="btn sm" data-act="st" data-id="${o.id}" data-s="preparo">Aceitar e preparar</button><button class="btn sm ghost" data-act="st" data-id="${o.id}" data-s="cancelado">Recusar</button>`;
   if(o.status==='preparo')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="pronto">Marcar pronto</button>`;
-  if(o.status==='pronto'&&o.mode==='retirada')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Cliente retirou</button>`;
+  if(o.status==='pronto'&&isPick(o))a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">${o.mode==='balcao'?'Entregue ao cliente':'Cliente retirou'}</button>`;
   else if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
   if(o.status==='rota')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Confirmar entrega</button>`;
-  a+=`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a><button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
-  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='retirada'?'<span class="pill">🏪 Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
+  a+=`${o.customer.phone?`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`:''}<button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
+  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='balcao'?'<span class="pill">🧾 Balcão</span>':isPick(o)?'<span class="pill">🏪 Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
   return `<article class="o ${o.status==='novo'?'new':''}"><div class="h"><b>#${o.code}</b><span class="mini">${hhmm(o.createdAt)} · há ${ago(o.createdAt)}</span></div>
-   <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='retirada'?'🏪 Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)} · ${esc(fmtPhone(o.customer.phone))}</span></div>${itemsHtml(o)}
+   <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='balcao'?'🧾 Pedido de balcão':isPick(o)?'🏪 Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)}${o.customer.phone?' · '+esc(fmtPhone(o.customer.phone)):''}</span></div>${itemsHtml(o)}
    <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.grp?`<span class="pill">👥 Grupo · ${groupPeople(o).length} pessoas</span>`:''}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
 function renderCozinha(){
   const os=Object.values(S.orders).sort((a,b)=>a.createdAt-b.createdAt);
   const today=os.filter(o=>new Date(o.createdAt).toDateString()===new Date().toDateString()&&o.status!=='cancelado');
   const rev=today.reduce((a,o)=>a+o.total,0);
-  $('#stats').innerHTML=`<div class="stat"><b>${os.filter(o=>o.status==='novo').length}</b><span>Novos pedidos</span></div><div class="stat"><b>${os.filter(o=>o.status==='preparo').length}</b><span>Em preparo</span></div><div class="stat"><b>${os.filter(o=>o.status==='rota').length}</b><span>Em rota</span></div><div class="stat"><b>${os.filter(o=>o.status==='entregue'&&isToday(doneAt(o))).length}</b><span>Saíram hoje (finalizados)</span></div><div class="stat"><b>${money(rev)}</b><span>Vendas de hoje (${today.length})</span></div><div class="stat"><b>${etaInfo?etaInfo.prep+' min':'–'}</b><span>Preparo estimado · fila ${etaInfo?etaInfo.queue:0}</span></div>
-   <div class="stat" style="display:flex;flex-direction:column;gap:8px;justify-content:center"><span class="pill ${S.settings.open?'':'closed'}" style="align-self:flex-start"><i></i>${S.settings.open?'Loja aberta':'Loja fechada'}</span><button class="btn sm dark" data-act="toggleOpen">${S.settings.open?'Fechar a loja':'Abrir a loja'}</button></div>`;
+  const cozinha=os.filter(o=>o.status==='novo'||o.status==='preparo').length;
+  $('#stats').innerHTML=`<div class="stat"><b>${today.length}</b><span>Pedidos hoje</span></div><div class="stat"><b>${money(rev)}</b><span>Vendido hoje</span></div><div class="stat"><b>${cozinha}</b><span>Na cozinha agora</span></div><button class="stat statbtn" data-act="daysum"><b>📊</b><span>Resumo do dia</span></button>`;
+  renderStoreBar();renderHoursForm();
+  const kb=$('#kt-badge');if(kb){const n=os.filter(o=>o.status==='novo').length;kb.hidden=!n;kb.textContent=n}
   const live=os.filter(o=>o.status!=='entregue'&&o.status!=='cancelado');
   let h='';
   if(!os.length)h=`<div class="sample"><b class="d" style="font-size:22px">Nenhum pedido ainda</b><span class="mini">Os pedidos feitos na aba Cliente aparecem aqui na hora.</span></div>`;
@@ -538,7 +541,11 @@ document.addEventListener('click',e=>{
   else if(a==='copy')copy(b.dataset.t);else if(a==='logout'){sb.auth.signOut().then(()=>{setSess(null);if(PORTAL==='cliente'){location.hash='#cliente'}render()})}
   else if(a==='st'){rpc('set_status',{oid:id,ns:b.dataset.s})}
   else if(a==='pix')rpc('confirm_pix',{oid:id});
-  else if(a==='toggleOpen'){S.settings.open=!S.settings.open;saveSettings()}
+  else if(a==='toggleOpen'){S.settings.open=!S.settings.open;if(S.settings.open)S.settings.pausedUntil=null;saveSettings();emit()}
+  else if(a==='pause'){S.settings.pausedUntil=Date.now()+30*60000;saveSettings();emit();toast('Pedidos pausados por 30 minutos')}
+  else if(a==='resume'){S.settings.pausedUntil=null;saveSettings();emit();toast('Pedidos retomados')}
+  else if(a==='pos')openPOS();
+  else if(a==='daysum')openDaySummary();
   
   
   else if(a==='photo'){photoFor=id;$('#photoIn').click()}
@@ -691,6 +698,7 @@ function renderMoto(){
 }
 
 /* ------------------------------ finalizados ------------------------------ */
+const isPick=o=>o.mode==='retirada'||o.mode==='balcao';
 const isToday=t=>!!t&&new Date(t).toDateString()===new Date().toDateString();
 const doneAt=o=>{const h=(o.history||[]).filter(x=>x.s===o.status).pop();return h?h.t:o.createdAt};
 function groupPeople(o){const m=new Map();(o.items||[]).forEach(it=>{if(!it.person)return;m.set(it.person,(m.get(it.person)||0)+it.unit*it.qty)});return [...m].map(([person,sub])=>({person,sub}))}
@@ -700,8 +708,8 @@ function finishedHtml(os){
   const td=done.filter(o=>isToday(doneAt(o))),old=done.length-td.length;
   return `<section class="col fin" style="grid-column:1/-1"><h3>Finalizados <span class="badge" style="margin-left:0">${done.length}</span><button class="btn sm ghost danger" data-act="ohideall" style="margin-left:auto">Excluir todos</button></h3>
    <div class="mini" style="padding:0 4px">${td.length} hoje${old?` · ${old} de dias anteriores`:''}. Toque em um pedido para conferir.</div>
-   <div class="fingrid">${done.slice(0,60).map(o=>`<article class="o fin-o"><button class="fin-open" data-act="odetail" data-id="${o.id}" aria-label="Ver pedido #${o.code}"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${o.status==='entregue'&&o.mode==='retirada'?'Retirado':STATUS[o.status]}</span></div>
-     <div class="mini">${esc(o.customer.name)} · ${o.mode==='retirada'?'Retirada':esc(o.addr.bairro)} · ${hhmm(doneAt(o))}${isToday(doneAt(o))?'':' · '+new Date(doneAt(o)).toLocaleDateString('pt-BR')}</div>
+   <div class="fingrid">${done.slice(0,60).map(o=>`<article class="o fin-o"><button class="fin-open" data-act="odetail" data-id="${o.id}" aria-label="Ver pedido #${o.code}"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${o.status==='entregue'&&isPick(o)?'Retirado':STATUS[o.status]}</span></div>
+     <div class="mini">${esc(o.customer.name)} · ${isPick(o)?'Retirada':esc(o.addr.bairro)} · ${hhmm(doneAt(o))}${isToday(doneAt(o))?'':' · '+new Date(doneAt(o)).toLocaleDateString('pt-BR')}</div>
      <div class="fin-row"><b>${money(o.total)}</b><span class="mini">${o.items.reduce((a,it)=>a+it.qty,0)} itens${o.grp?' · 👥 grupo':''}</span></div></button>
      <button class="btn sm ghost danger" data-act="ohide" data-id="${o.id}">Excluir</button></article>`).join('')}</div></section>`}
 function confirmTap(b,txt){if(b.dataset.ok)return true;b.dataset.ok=1;const old=b.textContent;b.textContent=txt||'Toque de novo para confirmar';b.classList.add('confirm');setTimeout(()=>{if(b.isConnected){delete b.dataset.ok;b.textContent=old;b.classList.remove('confirm')}},4000);return false}
@@ -709,7 +717,7 @@ async function hideOrder(b,id){if(!confirmTap(b,'Confirmar exclusão'))return;co
 async function hideAllFinished(b){if(!confirmTap(b,'Toque de novo para excluir todos'))return;const{data,error}=await sb.rpc('orders_hide_finished');if(error){dbFail(error);return}toast((data||0)+' pedidos finalizados excluídos');await loadOrders()}
 function closeSheetIfOrder(id){const d=$('#odet');if(d&&d.dataset.id===id)closeSheet()}
 function openOrderDetail(id){const o=S.orders[id];if(!o)return;
-  const dn=S.settings.drivers,PK=o.mode==='retirada',fin=o.status==='entregue'||o.status==='cancelado';
+  const dn=S.settings.drivers,PK=isPick(o),fin=o.status==='entregue'||o.status==='cancelado';
   const tl=(o.history||[]).map(x=>`<li><b>${x.s==='entregue'&&PK?'Retirado':STATUS[x.s]||x.s}</b><span class="mini">${new Date(x.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></li>`).join('');
   const ppl=groupPeople(o),fs=ppl.length?o.fee/ppl.length:0;
   openSheet(`<div class="hd" id="odet" data-id="${o.id}"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido #${o.code}</h2><span class="pill ${o.status==='cancelado'?'closed':fin?'':'warn'}">${PK&&o.status==='entregue'?'Retirado':STATUS[o.status]}</span></div>
@@ -801,7 +809,7 @@ function renderGroupSheet(){const el=$('#grp');if(!el||!GRP.data)return;const d=
      ${its.map(it=>{const can=own||GRP.tokens[it.id];return `<div class="gitem${it.ok?'':' bad'}"><div style="min-width:0"><span>${it.qty}× ${esc(it.name)}</span>${(it.extras&&it.extras.length)||(it.removed&&it.removed.length)||it.note?`<small>${it.extras.length?'+ '+esc(it.extras.join(', '))+' ':''}${it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}${it.ok?'':'<small class="err">Indisponível no momento</small>'}</div><span class="gtot">${money(+it.total)}</span>${can?`<button class="x" data-act="grm" data-item="${it.id}" aria-label="Remover ${esc(it.name)}">×</button>`:''}</div>`}).join('')}</div>`}).join(''):`<div class="empty">Ninguém escolheu ainda. Toque em "Cardápio", escolha seu lanche e use "Adicionar ao grupo".</div>`}
    <div class="sum"><div><span>${people.length} ${people.length===1?'pessoa':'pessoas'} · ${(n=>n+(n===1?' item':' itens'))(d.items.reduce((a,it)=>a+it.qty,0))}</span><span>${money(total)}</span></div><div class="mini">A taxa de entrega é calculada no envio e dividida igualmente entre todos.</div><div class="tot"><span>Subtotal</span><span>${money(total)}</span></div></div>
    <button class="btn ghost" data-act="close">+ Adicionar mais lanches</button>
-   ${own?`<button class="btn" data-act="gclose" ${d.items.length&&S.settings.open&&d.items.every(it=>it.ok)?'':'disabled'}>${!S.settings.open?'Loja fechada no momento':d.items.every(it=>it.ok)?'Fechar e enviar pedido':'Remova os itens indisponíveis'}</button><button class="btn ghost danger" data-act="gcancel">Cancelar pedido em grupo</button>`:`<div class="mini" style="text-align:center">${esc(d.owner_name.split(' ')[0])} envia o pedido quando todos tiverem escolhido.</div><button class="btn ghost" data-act="gleave">Sair do grupo</button>`}`}
+   ${own?`<button class="btn" data-act="gclose" ${d.items.length&&storeOpen()&&d.items.every(it=>it.ok)?'':'disabled'}>${!storeOpen()?'Loja fechada no momento':d.items.every(it=>it.ok)?'Fechar e enviar pedido':'Remova os itens indisponíveis'}</button><button class="btn ghost danger" data-act="gcancel">Cancelar pedido em grupo</button>`:`<div class="mini" style="text-align:center">${esc(d.owner_name.split(' ')[0])} envia o pedido quando todos tiverem escolhido.</div><button class="btn ghost" data-act="gleave">Sair do grupo</button>`}`}
 async function groupAdd(btn,pid,qty,exs,rms,note){btn.disabled=true;
   const{data,error}=await sb.rpc('group_add',{c:GRP.code,person:GRP.person,pid,qty,extras:exs,removed:rms,note});
   btn.disabled=false;if(error){dbFail(error);return}
@@ -855,8 +863,8 @@ function pixCheck(){const m=$('#s-pixmsg');if(!m)return;
 /* ------------------------------ status do pedido na tela do cliente ------------------------------ */
 function etaFor(o){const loc=o.drvId&&S.loc[o.drvId];
   if(o.status==='rota'&&loc&&o.dlat!=null)return Math.max(3,Math.round(3+kmBetween(loc,{lat:o.dlat,lng:o.dlng})*1.35/22*60));
-  if(o.eta)return Math.max(o.mode==='retirada'?3:5,Math.round(o.eta-(Date.now()-o.createdAt)/60000));return null}
-function statusInfo(o){const PK=o.mode==='retirada',m=etaFor(o);
+  if(o.eta)return Math.max(isPick(o)?3:5,Math.round(o.eta-(Date.now()-o.createdAt)/60000));return null}
+function statusInfo(o){const PK=isPick(o),m=etaFor(o);
   const steps=PK?['novo','preparo','pronto']:['novo','preparo','pronto','rota'];
   const lab={novo:'Recebido',preparo:'Em preparo',pronto:PK?'Pronto p/ retirar':'Pronto',rota:'Saiu para entrega'}[o.status]||STATUS[o.status];
   const msg={novo:'Aguardando a hamburgueria aceitar.',
@@ -873,7 +881,7 @@ function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
     <div class="ostat-f"><span>${i.msg}</span><span class="go">${o.status==='rota'?'Ver no mapa':'Acompanhar'}<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div></button>`}).join('')}
 let lastSt=null;
 function notifyCustomer(){if(sess)return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
-  if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=o.mode==='retirada';
+  if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=isPick(o);
     const m={preparo:'Seu pedido #'+o.code+' está sendo preparado 🍔',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar 🏪':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega 🛵',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite! 😋',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
     if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
   lastSt=now}
@@ -1014,7 +1022,7 @@ async function backupCSV(b){b.disabled=true;try{
   const rows=await fetchAll(()=>sb.from('orders').select('code,created_at,status,mode,customer,addr,items,subtotal,fee,total,pay,pix_paid,hidden_at').order('created_at'));
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const head=['Pedido','Data','Status','Tipo','Cliente','Telefone','Bairro','Itens','Subtotal','Taxa','Total','Pagamento','Pix confirmado','Excluído'];
-  const lines=rows.map(o=>[o.code,new Date(o.created_at).toLocaleString('pt-BR'),STATUS[o.status]||o.status,o.mode==='retirada'?'Retirada':'Entrega',o.customer&&o.customer.name,o.customer&&o.customer.phone,o.addr&&o.addr.bairro,(o.items||[]).map(i=>i.qty+'x '+i.name+(i.person?' ('+i.person+')':'')).join(' | '),String(o.subtotal).replace('.',','),String(o.fee).replace('.',','),String(o.total).replace('.',','),o.pay&&o.pay.method,o.pix_paid?'sim':'',o.hidden_at?'sim':''].map(q).join(';'));
+  const lines=rows.map(o=>[o.code,new Date(o.created_at).toLocaleString('pt-BR'),STATUS[o.status]||o.status,isPick(o)?'Retirada':'Entrega',o.customer&&o.customer.name,o.customer&&o.customer.phone,o.addr&&o.addr.bairro,(o.items||[]).map(i=>i.qty+'x '+i.name+(i.person?' ('+i.person+')':'')).join(' | '),String(o.subtotal).replace('.',','),String(o.fee).replace('.',','),String(o.total).replace('.',','),o.pay&&o.pay.method,o.pix_paid?'sim':'',o.hidden_at?'sim':''].map(q).join(';'));
   dl(`pedidos-lanches-do-boy-${stamp()}.csv`,'﻿'+[head.map(q).join(';'),...lines].join('\r\n'),'text/csv;charset=utf-8');
   toast(rows.length+' pedidos exportados')}catch(e){dbFail(e)}b.disabled=false}
 async function restoreMenu(file){let d;try{d=JSON.parse(await file.text())}catch(e){toast('Arquivo inválido');return}
@@ -1033,6 +1041,109 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act=bkjson
   if(a==='bkjson')backupJSON(b);else if(a==='bkcsv')backupCSV(b);else if(a==='accdel')deleteAccount(b);else{if(!confirmTap(b,'Toque de novo e escolha o arquivo'))return;$('#bk-file').click()}});
 document.addEventListener('change',e=>{if(e.target.id==='bk-file'&&e.target.files[0]){restoreMenu(e.target.files[0]);e.target.value=''}});
 
+/* ------------------------------ horário automático e pausa ------------------------------ */
+const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const DEF_HOURS={0:{on:true,a:'18:00',f:'23:30'},1:{on:false,a:'18:00',f:'23:30'},2:{on:true,a:'18:00',f:'23:30'},3:{on:true,a:'18:00',f:'23:30'},4:{on:true,a:'18:00',f:'23:30'},5:{on:true,a:'18:00',f:'23:59'},6:{on:true,a:'18:00',f:'23:59'}};
+function spNow(){const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());const g=k=>p.find(x=>x.type===k).value;return{d:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(g('weekday')),m:(+g('hour'))*60+(+g('minute'))}}
+const tmin=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+(m||0)};
+function inHours(){const H=S.settings.hours||DEF_HOURS,n=spNow(),h=H[n.d],hp=H[(n.d+6)%7];
+  if(h&&h.on){const a=tmin(h.a),f=tmin(h.f);if(f>a?(n.m>=a&&n.m<f):(n.m>=a))return true}
+  if(hp&&hp.on&&tmin(hp.f)<=tmin(hp.a)&&n.m<tmin(hp.f))return true;return false}
+function paused(){return !!(S.settings.pausedUntil&&S.settings.pausedUntil>Date.now())}
+function storeOpen(){if(!S.settings.open||paused())return false;return S.settings.autoHours?inHours():true}
+function storeNext(){if(!S.settings.open)return 'Loja fechada';if(paused())return 'Volta às '+hhmm(S.settings.pausedUntil);
+  if(S.settings.autoHours&&!inHours()){const H=S.settings.hours||DEF_HOURS,n=spNow();for(let k=0;k<7;k++){const d=(n.d+k)%7,h=H[d];if(h&&h.on&&(k>0||tmin(h.a)>n.m))return 'Abre '+(k===0?'hoje':k===1?'amanhã':DIAS[d].toLowerCase())+' às '+h.a}return 'Fechada'}return ''}
+function renderStoreBar(){const el=$('#storeBar');if(!el)return;const op=storeOpen(),why=storeNext();
+  let info=op?(S.settings.autoHours?(()=>{const H=S.settings.hours||DEF_HOURS,h=H[spNow().d];return h&&h.on?'Fecha às '+h.f:''})():'Recebendo pedidos'):why;
+  el.innerHTML=`<div class="sbar ${op?'on':'off'}"><div class="sbar-st"><span class="sdot"></span><div><b>${op?'Loja aberta':paused()?'Pedidos pausados':'Loja fechada'}</b><div class="mini">${esc(info||'')}</div></div></div>
+   <div class="sbar-acts">${paused()?'<button class="btn sm" data-act="resume">Retomar agora</button>':op?'<button class="btn sm ghost" data-act="pause">Pausar 30 min</button>':''}<button class="btn sm ${S.settings.open?'ghost':''}" data-act="toggleOpen">${S.settings.open?'Fechar':'Abrir a loja'}</button></div>
+   <button class="btn sbar-new" data-act="pos">+ Novo pedido</button></div>`}
+setInterval(()=>{if(cur()==='cozinha')renderStoreBar();else if(cur()==='cliente'){const p=$('#openPill');if(p){const o=storeOpen();p.className='pill'+(o?'':' closed');p.lastElementChild.textContent=o?'Aberta agora':(storeNext()||'Loja fechada')}}},30000);
+function renderHoursForm(){const el=$('#hoursBox');if(!el||el.contains(document.activeElement))return;const H=S.settings.hours||DEF_HOURS;
+  el.innerHTML=`<label class="opt ${S.settings.autoHours?'on':''}"><span><b>Abrir e fechar sozinha</b><small class="mini" style="display:block">Segue os horários abaixo (horário de Brasília)</small></span><input type="checkbox" id="h-auto" ${S.settings.autoHours?'checked':''}></label>
+   <div class="hgrid">${[1,2,3,4,5,6,0].map(d=>{const h=H[d]||{on:false,a:'18:00',f:'23:30'};return `<div class="hrow ${h.on?'':'off'}" data-d="${d}"><label class="hday"><input type="checkbox" class="h-on" ${h.on?'checked':''}> ${DIAS[d]}</label><input type="time" class="h-a" value="${h.a}" aria-label="${DIAS[d]} abre"><span class="mini">às</span><input type="time" class="h-f" value="${h.f}" aria-label="${DIAS[d]} fecha"></div>`}).join('')}</div>
+   <button class="btn sm" id="h-save">Salvar horários</button>`;
+  $('#h-auto',el).addEventListener('change',e=>{S.settings.autoHours=e.target.checked;saveSettings();emit();toast(e.target.checked?'Horário automático ligado':'Horário automático desligado')});
+  $$('.h-on',el).forEach(c=>c.addEventListener('change',()=>c.closest('.hrow').classList.toggle('off',!c.checked)));
+  $('#h-save',el).addEventListener('click',()=>{const H2={};$$('.hrow',el).forEach(r=>{H2[r.dataset.d]={on:$('.h-on',r).checked,a:$('.h-a',r).value||'18:00',f:$('.h-f',r).value||'23:30'}});S.settings.hours=H2;saveSettings();document.activeElement.blur();emit();toast('Horários salvos')})}
+
+/* ------------------------------ pedido de balcão (loja lança) ------------------------------ */
+let posCart=[],posOn=false;
+const posKey=it=>[it.pid,it.extras.join(','),it.removed.join(','),it.note].join('|');
+function posAdd(it){const k=posKey(it),f=posCart.find(x=>posKey(x)===k);if(f)f.qty+=it.qty;else posCart.push(it)}
+function posTotal(){return posCart.reduce((a,it)=>a+it.unit*it.qty,0)}
+function openPOS(){posOn=true;const cats=CATS.filter(c=>MENU.some(p=>p.cat===c));
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Fechar">${BACKSVG}<span>Fechar</span></button><h2>Novo pedido</h2></div>
+  <div class="bd" id="pos">
+   <div class="search" style="margin:0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="pos-q" type="search" placeholder="Buscar item" autocomplete="off" aria-label="Buscar item"></div>
+   <div id="pos-list" class="poslist"></div>
+   <div id="pos-cart"></div>
+  </div>`,sh=>{
+    const q=$('#pos-q',sh);q.addEventListener('input',()=>posList(q.value));posList('');posCartRender();
+    sh.addEventListener('click',e=>{const b=e.target.closest('[data-pos]');if(!b)return;const a=b.dataset.pos,id=b.dataset.id;
+      if(a==='add'){const p=P[id];if(!p||S.settings.soldOut[id])return;posAdd({pid:id,name:p.name,unit:p.price,qty:1,extras:[],xn:[],removed:[],note:''});posCartRender();b.classList.add('bump');setTimeout(()=>b.classList.remove('bump'),250)}
+      else if(a==='opt'){openProduct(id)}
+      else if(a==='inc'||a==='dec'){const it=posCart[+id];it.qty+=a==='inc'?1:-1;if(it.qty<1)posCart.splice(+id,1);posCartRender()}
+    })})}
+function posList(qv){const el=$('#pos-list');if(!el)return;const t=qv.trim().toLowerCase();
+  const items=MENU.filter(p=>!t||p.name.toLowerCase().includes(t));
+  el.innerHTML=items.map(p=>{const out=!!S.settings.soldOut[p.id];const hasOpt=p.opts||p.extras;return `<div class="posit${out?' out':''}"><button class="posadd" data-pos="add" data-id="${p.id}" ${out?'disabled':''}><b>${esc(p.name)}</b><span>${out?'Esgotado':money(p.price)}</span></button>${hasOpt&&!out?`<button class="btn sm ghost" data-pos="opt" data-id="${p.id}" aria-label="Personalizar ${esc(p.name)}">+ opções</button>`:''}</div>`}).join('')||'<div class="mini">Nenhum item encontrado.</div>'}
+function posCartRender(){const el=$('#pos-cart');if(!el)return;
+  if(!posCart.length){el.innerHTML='<div class="empty" style="padding:16px">Toque nos itens acima para montar o pedido.</div>';return}
+  el.innerHTML=`<div class="card" style="display:grid;gap:12px">
+   <div class="lbl" style="margin:0">Pedido</div>
+   ${posCart.map((it,i)=>`<div class="pcl"><div style="min-width:0"><b>${esc(it.name)}</b>${it.xn.length||it.removed.length||it.note?`<small>${it.xn.length?'+ '+esc(it.xn.join(', '))+' ':''}${it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}</div><div class="stepper"><button data-pos="dec" data-id="${i}" aria-label="Menos">−</button><span>${it.qty}</span><button data-pos="inc" data-id="${i}" aria-label="Mais">+</button></div><b class="pcl-t">${money(it.unit*it.qty)}</b></div>`).join('')}
+   <div class="g2">
+    <div class="f"><label for="pos-name">Nome do cliente</label><input id="pos-name" maxlength="60" placeholder="Opcional"></div>
+    <div class="f"><label for="pos-phone">Telefone</label><input id="pos-phone" inputmode="tel" maxlength="15" placeholder="Opcional"></div>
+   </div>
+   <div class="segs" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="pos-mode" value="balcao" checked><span>🧾 Balcão</span></label><label><input type="radio" name="pos-mode" value="entrega"><span>🛵 Entrega</span></label></div>
+   <div id="pos-addr" class="g2" hidden><div class="f w"><label for="pos-street">Rua</label><input id="pos-street"></div><div class="f"><label for="pos-num">Número</label><input id="pos-num"></div><div class="f"><label for="pos-bairro">Bairro</label><input id="pos-bairro" list="pos-bairros"><datalist id="pos-bairros">${BAIRROS.map(b=>`<option value="${esc(b.n)}">`).join('')}</datalist></div><div class="f w"><label for="pos-comp">Complemento</label><input id="pos-comp" placeholder="Opcional"></div></div>
+   <div class="segs" role="radiogroup" aria-label="Pagamento"><label><input type="radio" name="pos-pay" value="dinheiro" checked><span>Dinheiro</span></label><label><input type="radio" name="pos-pay" value="pix"><span>Pix</span></label><label><input type="radio" name="pos-pay" value="cartao"><span>Cartão</span></label></div>
+   <label class="opt"><span>Já está pago</span><input type="checkbox" id="pos-paid"></label>
+   <div class="sum"><div class="tot"><span>Total${'<span class="mini" id="pos-feeinfo"></span>'}</span><span id="pos-tot">${money(posTotal())}</span></div></div>
+   <div class="err" id="pos-err" role="alert"></div>
+   <button class="btn" id="pos-send">Lançar pedido · ${money(posTotal())}</button></div>`;
+  const ph=$('#pos-phone');ph.addEventListener('input',e=>{e.target.value=fmtPhone(e.target.value)});
+  const upd=()=>{const ent=$('[name=pos-mode]:checked').value==='entrega';$('#pos-addr').hidden=!ent;const fee=ent?feeFor($('#pos-bairro').value):0;$('#pos-feeinfo').textContent=ent?' (com taxa '+money(fee)+')':'';$('#pos-tot').textContent=money(posTotal()+fee);$('#pos-send').textContent='Lançar pedido · '+money(posTotal()+fee)};
+  $$('[name=pos-mode]').forEach(r=>r.addEventListener('change',upd));$('#pos-bairro').addEventListener('input',upd);
+  $('#pos-send').addEventListener('click',posSend)}
+async function posSend(){const err=$('#pos-err'),btn=$('#pos-send');err.textContent='';
+  const ent=$('[name=pos-mode]:checked').value==='entrega';
+  const addr=ent?{street:$('#pos-street').value.trim(),number:$('#pos-num').value.trim(),bairro:$('#pos-bairro').value.trim(),comp:$('#pos-comp').value.trim(),city:'Belo Horizonte - MG'}:{};
+  if(ent&&(addr.street.length<3||!addr.number||addr.bairro.length<2)){err.textContent='Preencha rua, número e bairro da entrega.';return}
+  const p={mode:ent?'entrega':'balcao',items:posCart.map(it=>({pid:it.pid,qty:it.qty,extras:it.extras,removed:it.removed,note:it.note})),customer:{name:$('#pos-name').value.trim()||'Balcão',phone:digits($('#pos-phone').value)},addr,pay:{method:$('[name=pos-pay]:checked').value},paid:$('#pos-paid').checked};
+  btn.disabled=true;btn.textContent='Lançando…';
+  if(ent){const g=await geocodeAddr({street:addr.street,num:addr.number,bairro:addr.bairro,city:addr.city});if(g){addr.lat=g.lat;addr.lng=g.lng}}
+  const{data,error}=await sb.rpc('create_counter_order',{p});
+  if(error){btn.disabled=false;btn.textContent='Lançar pedido';err.textContent=error.message;return}
+  posCart=[];posOn=false;closeSheet();toast('Pedido '+(data&&data.code?'#'+data.code+' ':'')+'lançado na cozinha');loadOrders()}
+
+/* ------------------------------ resumo do dia ------------------------------ */
+function openDaySummary(off){off=off||0;const d0=new Date();d0.setHours(0,0,0,0);d0.setDate(d0.getDate()-off);const d1=new Date(d0);d1.setDate(d1.getDate()+1);
+  const all=Object.values(S.orders).filter(o=>o.createdAt>=d0.getTime()&&o.createdAt<d1.getTime());
+  const ok=all.filter(o=>o.status!=='cancelado'),canc=all.length-ok.length,tot=ok.reduce((a,o)=>a+o.total,0),fees=ok.reduce((a,o)=>a+o.fee,0);
+  const byPay={pix:0,dinheiro:0,cartao:0};ok.forEach(o=>{byPay[o.pay.method]=(byPay[o.pay.method]||0)+o.total});
+  const byMode={entrega:0,retirada:0,balcao:0};ok.forEach(o=>{byMode[o.mode]=(byMode[o.mode]||0)+1});
+  const prod={};ok.forEach(o=>o.items.forEach(it=>{prod[it.name]=(prod[it.name]||0)+it.qty}));
+  const top=Object.entries(prod).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const row=(k,v,s)=>`<div class="line" style="padding:9px 0"><span>${k}</span><b>${v}</b></div>`;
+  openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Resumo ${off?'de ontem':'de hoje'}</h2></div>
+  <div class="bd">
+   <div class="segs"><label><input type="radio" name="ds" value="0" ${off?'':'checked'}><span>Hoje</span></label><label><input type="radio" name="ds" value="1" ${off?'checked':''}><span>Ontem</span></label></div>
+   <div class="sumgrid"><div class="stat"><b>${money(tot)}</b><span>Vendido</span></div><div class="stat"><b>${ok.length}</b><span>Pedidos</span></div><div class="stat"><b>${ok.length?money(tot/ok.length):'–'}</b><span>Ticket médio</span></div></div>
+   <div><div class="lbl">Recebido por forma de pagamento</div>${row('💠 Pix',money(byPay.pix))}${row('💵 Dinheiro',money(byPay.dinheiro))}${row('💳 Cartão',money(byPay.cartao))}</div>
+   <div><div class="lbl">Pedidos por tipo</div>${row('🛵 Entrega',byMode.entrega)}${row('🏪 Retirada',byMode.retirada)}${row('🧾 Balcão',byMode.balcao)}${row('Taxas de entrega',money(fees))}${canc?row('Cancelados',canc):''}</div>
+   ${top.length?`<div><div class="lbl">Mais vendidos</div>${top.map(([n,q],i)=>row((i+1)+'. '+esc(n),q+' un.')).join('')}</div>`:''}
+   <p class="mini" style="margin:0">Pedidos excluídos da lista de finalizados não entram no resumo.</p>
+  </div>`,sh=>{$$('[name=ds]',sh).forEach(r=>r.addEventListener('change',()=>openDaySummary(+r.value)))})}
+
+/* ------------------------------ abas da hamburgueria ------------------------------ */
+let ktab=LS.get('lb_ktab','pedidos');
+function setKtab(k){ktab=k;LS.set('lb_ktab',k);$$('[data-kt]').forEach(b=>{const on=b.dataset.kt===k;b.setAttribute('aria-selected',on)});$$('[data-kp]').forEach(p=>p.hidden=p.dataset.kp!==k);window.scrollTo({top:0})}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-kt]');if(b)setKtab(b.dataset.kt)});
+setTimeout(()=>setKtab(ktab),0);
+
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
 S.loc=S.loc||{};const maps={};
@@ -1046,7 +1157,7 @@ async function loadLoc(){if(!S.user)return;try{const{data}=await sb.from('driver
 let leafP=null;function loadLeaflet(){if(window.L)return Promise.resolve();return leafP||(leafP=new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet.js';sc.onload=res;sc.onerror=()=>{leafP=null;rej()};document.head.appendChild(sc)}))}
 const ACTIVE=['novo','preparo','pronto','rota'];
 function trackExtra(o){if(!ACTIVE.includes(o.status))return'';
-  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${o.mode==='retirada'?`<div class="mini">🏪 Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
+  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${isPick(o)?`<div class="mini">🏪 Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
 function renderTrack(){const real=$('#trk');if(!real)return;const tmp=document.createElement('div');TRK_T=tmp;try{renderTrackBase()}finally{TRK_T=null}
   if(real.dataset.sig!==tmp.innerHTML){Object.keys(maps).forEach(k=>{try{maps[k].map.remove()}catch(e){}delete maps[k]});real.innerHTML=tmp.innerHTML;real.dataset.sig=tmp.innerHTML}
   drawMaps();renderPixQRs()}
@@ -1067,11 +1178,11 @@ function updateTrackLive(){
     const loc=o.drvId&&S.loc[o.drvId],dest=o.dlat!=null?{lat:o.dlat,lng:o.dlng}:null;let mins=null,st='';
     if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;const age=Math.round((Date.now()-loc.t)/1000);st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você · atualizado ${age<60?'agora':'há '+Math.round(age/60)+' min'}.`;if(age>180)st+=' (sinal do motoboy fraco no momento)'}
     else if(o.eta){mins=Math.max(5,o.eta-(Date.now()-o.createdAt)/60000)}
-    if(!st&&o.mode==='retirada')st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Seu pedido está pronto! Pode vir retirar. 🏪'}[o.status]||'';
-    if(o.mode==='retirada'&&o.status==='pronto')mins=null;
+    if(!st&&isPick(o))st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Seu pedido está pronto! Pode vir retirar. 🏪'}[o.status]||'';
+    if(isPick(o)&&o.status==='pronto')mins=null;
     if(!st)st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Pedido pronto, aguardando o motoboy sair.',rota:'O motoboy saiu para entrega. Localização em instantes.'}[o.status]||'';
     const m=mins==null?null:Math.max(3,Math.round(mins));
-    e1.textContent=o.mode==='retirada'&&o.status==='pronto'?'Pronto para retirar':m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':o.mode==='retirada'?'Pronto em ~':'Previsão: ~')+m+' min';
+    e1.textContent=isPick(o)&&o.status==='pronto'?'Pronto para retirar':m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':isPick(o)?'Pronto em ~':'Previsão: ~')+m+' min';
     const e2=document.getElementById('eta2-'+o.id);if(e2)e2.textContent=m==null?'':'por volta de '+hhmm(Date.now()+m*60000);
     const e3=document.getElementById('trkst-'+o.id);if(e3)e3.textContent=st;
     const mp=maps[o.id];if(mp&&mp.map){

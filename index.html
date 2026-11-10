@@ -227,6 +227,35 @@ body.has-tabbar .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .geo-dot{width:12px;height:12px;border-radius:50%;background:var(--ok);flex:none}.geo.wait .geo-dot{background:var(--gold)}
 @media (prefers-reduced-motion:no-preference){.geo.on .geo-dot{animation:pulse 1.6s ease-in-out infinite;--c:var(--ok)}}
 .tsbox{min-height:66px;display:grid;place-items:center}
+/* hamburgueria em abas */
+.ktabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:5px;margin:4px 0 14px;box-shadow:var(--sh1);position:sticky;top:calc(var(--hdrH,0px) + 4px);z-index:14}
+.ktabs button{position:relative;border:0;background:none;color:var(--muted);font-weight:800;font-size:14.5px;padding:12px 6px;border-radius:11px;min-height:48px}
+.ktabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.ktabs .badge{position:absolute;top:4px;right:8px}
+.sbar{display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:center;background:var(--surface);border:2px solid var(--ok);border-radius:var(--r3);padding:12px 14px;margin-bottom:12px;box-shadow:var(--sh1)}
+.sbar.off{border-color:var(--crit)}
+.sbar-st{display:flex;gap:10px;align-items:center;min-width:0}.sbar-st b{font-size:16px}
+.sdot{width:12px;height:12px;border-radius:50%;background:var(--ok);flex:none}.sbar.off .sdot{background:var(--crit)}
+.sbar-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sbar-new{grid-column:1/-1;font-size:16.5px;min-height:54px}
+.statbtn{text-align:left;cursor:pointer;color:var(--ink)}.statbtn b{font-size:24px}
+.hgrid{display:grid;gap:8px}
+.hrow{display:grid;grid-template-columns:minmax(110px,1fr) auto auto auto;gap:8px;align-items:center}
+.hrow.off input[type=time]{opacity:.4}
+.hrow input[type=time]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font:inherit;min-height:42px}
+.hday{display:flex;gap:8px;align-items:center;font-weight:700}.hday input{width:20px;height:20px;accent-color:var(--brand)}
+@media (max-width:420px){.hrow{grid-template-columns:1fr auto auto auto;font-size:14px}.hrow input[type=time]{padding:6px;width:96px}}
+/* pedido de balcão */
+.poslist{display:grid;gap:6px;max-height:38vh;overflow:auto;padding-right:2px}
+.posit{display:flex;gap:6px;align-items:stretch}.posit.out{opacity:.5}
+.posadd{flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:11px 13px;min-height:48px;text-align:left;font:inherit}
+.posadd span{font-weight:800;color:var(--brand);white-space:nowrap}.posadd:active,.posadd.bump{background:var(--brand-soft);border-color:var(--brand)}
+.pcl{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}.pcl small{display:block;color:var(--muted);font-size:12px}.pcl-t{min-width:76px;text-align:right}
+.segs{display:flex;gap:6px;flex-wrap:wrap}.segs label{flex:1}.segs input{position:absolute;opacity:0;pointer-events:none}
+.segs span{display:block;text-align:center;border:1px solid var(--line);border-radius:12px;padding:11px 8px;font-weight:800;cursor:pointer;background:var(--surface)}
+.segs input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.segs input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sumgrid .stat{padding:12px}.sumgrid .stat b{font-size:20px}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -363,11 +392,20 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
   </section>
 
   <section class="view wrap wide" id="v-cozinha" hidden>
+    <nav class="ktabs" role="tablist" aria-label="Hamburgueria">
+      <button role="tab" data-kt="pedidos" aria-selected="true">📋 Pedidos <span class="badge" id="kt-badge" hidden></span></button>
+      <button role="tab" data-kt="cardapio" aria-selected="false">🍔 Cardápio</button>
+      <button role="tab" data-kt="ajustes" aria-selected="false">⚙️ Ajustes</button>
+    </nav>
+    <div data-kp="pedidos">
     <div id="alertBar" style="margin-bottom:10px"></div>
+    <div id="storeBar"></div>
     <div class="stats" id="stats"></div>
-    <div class="chips" style="margin:-4px 0 12px"><button class="chip" data-k="cardapioPanel">🍔 Cardápio e preços</button><button class="chip" data-k="extrasPanel">➕ Acréscimos</button><button class="chip" data-k="ajustesPanel">⚙️ Ajustes da loja</button><button class="chip" data-k="equipePanel">🛵 Equipe e motoboys</button><button class="chip" data-k="backupPanel">💾 Cópia de segurança</button></div>
+    
     <div class="board" id="board"></div>
-    <details class="panel" id="cardapioPanel"><summary>Cardápio: preços, fotos e esgotados</summary><div class="in"><p class="mini" style="margin:0">Altere o preço e toque em "Salvar preço": o novo valor vale na hora para os próximos pedidos. Em Foto, escolha a imagem do celular. Em Disponível/Esgotado, pause um item.</p><form id="niF" class="newitem" novalidate>
+    </div>
+    <div data-kp="cardapio" hidden>
+    <details class="panel" open id="cardapioPanel"><summary>Cardápio: preços, fotos e esgotados</summary><div class="in"><p class="mini" style="margin:0">Altere o preço e toque em "Salvar preço": o novo valor vale na hora para os próximos pedidos. Em Foto, escolha a imagem do celular. Em Disponível/Esgotado, pause um item.</p><form id="niF" class="newitem" novalidate>
       <b class="d" style="font-size:18px">Adicionar item ao cardápio</b>
       <div class="g2">
         <div class="f w"><label for="ni-name">Nome do item</label><input id="ni-name" maxlength="60" placeholder="Ex.: X-Picanha"></div>
@@ -381,8 +419,11 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       <p class="mini" style="margin:0">O item aparece na hora para os clientes. Depois é só tocar em Foto para colocar a imagem.</p>
     </form>
     <div id="menuAdmin"></div></div></details>
-    <details class="panel" id="extrasPanel"><summary>Acréscimos: preços e novos itens</summary><div class="in"><p class="mini" style="margin:0">Os acréscimos são separados por grupo. Mude o preço e toque em Salvar, adicione um novo no fim da lista ou remova. Vale na hora para os próximos pedidos.</p><div id="xAdmin"></div></div></details>
-    <details class="panel" id="ajustesPanel"><summary>Ajustes da loja</summary><div class="in">
+    <details class="panel" open id="extrasPanel"><summary>Acréscimos: preços e novos itens</summary><div class="in"><p class="mini" style="margin:0">Os acréscimos são separados por grupo. Mude o preço e toque em Salvar, adicione um novo no fim da lista ou remova. Vale na hora para os próximos pedidos.</p><div id="xAdmin"></div></div></details>
+    </div>
+    <div data-kp="ajustes" hidden>
+    <details class="panel" open><summary>Horário de funcionamento</summary><div class="in"><div id="hoursBox"></div></div></details>
+    <details class="panel" open id="ajustesPanel"><summary>Ajustes da loja</summary><div class="in">
       <div class="g2">
         <div class="f"><label for="s-pixtype">Tipo da chave Pix</label><select id="s-pixtype"><option value="cnpj">CNPJ</option><option value="cpf">CPF</option><option value="telefone">Telefone</option><option value="email">E-mail</option><option value="aleatoria">Chave aleatória</option></select></div>
         <div class="f"><label for="s-pix">Chave Pix</label><input id="s-pix" autocapitalize="none" placeholder="Digite a chave"></div>
@@ -394,17 +435,23 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       </div>
       <div class="mini">O endereço do cliente vem do CEP (consulta ViaCEP, base dos Correios). A taxa padrão vale para qualquer bairro; os bairros já cadastrados no código têm taxa própria.</div>
     </div></details>
-    <details class="panel" id="equipePanel"><summary>Equipe e motoboys</summary><div class="in">
+    <details class="panel" open id="equipePanel"><summary>Equipe e motoboys</summary><div class="in">
       <p class="mini" style="margin:0">O motoboy não precisa se cadastrar: ele entra pelo endereço <b>/motoboy</b> do app com o login e a senha mostrados aqui e vê somente a tela de entregas. Aqui você muda o nome, troca a senha ou remove.</p>
       <div id="teamList"></div>
       <form id="invF" class="g2" novalidate><div class="f"><label for="inv-name">Nome do motoboy</label><input id="inv-name" maxlength="40"></div><div class="f"><label for="inv-pin">Senha (4 a 6 números)</label><input id="inv-pin" inputmode="numeric" maxlength="6"></div><div class="w"><button class="btn sm" type="submit">Adicionar motoboy</button></div></form>
     </div></details>
-    <details class="panel" id="backupPanel"><summary>Cópia de segurança</summary><div class="in">
+    <details class="panel" open id="backupPanel"><summary>Cópia de segurança</summary><div class="in">
       <p class="mini" style="margin:0">Baixe uma cópia de tudo de vez em quando (por exemplo, toda semana) e guarde no Google Drive ou no e-mail. Se algo der errado, o cardápio pode ser restaurado a partir dela.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="bkjson">Baixar cópia completa (.json)</button><button class="btn sm ghost" data-act="bkcsv">Baixar pedidos para Excel (.csv)</button></div>
       <div style="display:grid;gap:6px;border-top:1px solid var(--line2);padding-top:12px"><b>Restaurar cardápio</b><div class="mini">Escolha uma cópia (.json) baixada antes. Itens, preços, acréscimos, bairros e fotos voltam como estavam na cópia. Pedidos e ajustes não são alterados.</div><div><button class="btn sm ghost danger" data-act="bkrest">Restaurar a partir de uma cópia</button></div><div class="mini" id="bk-st" role="status"></div></div>
       <input type="file" id="bk-file" accept="application/json,.json" hidden>
     </div></details>
+    </div>
+    
+    
+    
+    
+    
     <input type="file" id="photoIn" accept="image/*" hidden>
   </section>
 
