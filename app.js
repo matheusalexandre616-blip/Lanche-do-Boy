@@ -211,7 +211,7 @@ async function loadStaff(){if(!S.user||!sess){S.drivers=[];rebuildOrders();retur
 function setList(arr,items){arr.length=0;items.forEach(x=>arr.push(x))}
 async function loadCatalog(){
   const[p,e,z,st,ph]=await Promise.all([sb.from('products').select('*').order('sort'),sb.from('extras').select('*').order('name'),sb.from('zones').select('*'),sb.from('store_settings').select('id,open,pix,pix_type,pix_name,pix_city,wa,fee_default,store_lat,store_lng,auto_hours,hours,paused_until').eq('id',1).maybeSingle(),sb.from('photos').select('*')]);
-  if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||''})));
+  if(p.data&&p.data.length){setList(MENU,p.data.map(r=>({id:r.id,cat:r.cat,name:r.name,price:+r.price,tag:r.tag||'',opts:r.opts?1:0,extras:r.extras_set||undefined,desc:r.descr||'',promo:!!r.promo,hidden:!!r.hidden})));
     Object.keys(P).forEach(k=>delete P[k]);MENU.forEach(m=>P[m.id]=m);
     const so={};p.data.forEach(r=>{if(r.sold_out)so[r.id]=true});S.settings.soldOut=so}
   if(e.data){const by=k=>e.data.filter(x=>x.set_id===k).map(x=>({id:x.id,n:x.name,p:+x.price}));
@@ -228,6 +228,9 @@ async function savePrice(id){const inp=$('#pr-'+id);if(!inp)return;const v=Math.
   if(!(v>0&&v<1000)){toast('Preço inválido. Use por exemplo 22,90');return}
   const{error}=await sb.from('products').update({price:v}).eq('id',id);if(error){dbFail(error);return}
   if(P[id])P[id].price=v;inp.blur();toast('Preço de '+(P[id]?P[id].name:'item')+' atualizado para '+money(v));emit()}
+async function toggleProd(id,k){const p=P[id];if(!p)return;const v=!p[k];p[k]=v;emit();
+  const{error}=await sb.from('products').update({[k]:v}).eq('id',id);if(error){p[k]=!v;emit();dbFail(error);return}
+  toast(k==='promo'?(v?p.name+' agora aparece em Promoções':p.name+' saiu das Promoções'):(v?p.name+' não aparece mais para o cliente':p.name+' voltou ao cardápio'))}
 async function setSold(id){const v=!S.settings.soldOut[id];const so=Object.assign({},S.settings.soldOut);if(v)so[id]=true;else delete so[id];S.settings.soldOut=so;emit();const{error}=await sb.from('products').update({sold_out:v}).eq('id',id);if(error)dbFail(error)}
 async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error){dbFail(error);return{error}}await loadOrders();return{data}}
 function upd(){}
@@ -348,13 +351,13 @@ function renderCliente(){
   renderGroupBar();renderOrderStatus();
   $('#feeMin').textContent='a partir de '+money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
   const open=storeOpen();const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':(storeNext()||'Loja fechada');
-  $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
+  $('#chips').innerHTML=CATS.filter(c=>c==='Promoções'?MENU.some(p=>p.promo&&!p.hidden):MENU.some(p=>p.cat===c&&!p.hidden&&!p.promo)).map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
   const f=filter.trim().toLowerCase();
-  const list=MENU.filter(p=>!f||(p.name+' '+p.desc).toLowerCase().includes(f));
+  const list=MENU.filter(p=>!p.hidden&&(!f||(p.name+' '+p.desc).toLowerCase().includes(f)));
   let h='';
-  const isPromo=p=>p.cat==='Promoções'||p.promo;
-  if(!f){const st=MENU.filter(isPromo);if(st.length)h+=`<div class="sec promo" id="cat-Promoções" style="margin-top:6px"><h2>🔥 Promoções <small>${st.length} ${st.length>1?'ofertas':'oferta'}</small></h2><div class="stars">${st.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="star ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><span class="ribbon">Promoção</span><div class="ph">${thumb(p)}</div><div class="b"><b>${esc(p.name)}</b>${p.tag?`<em>${esc(p.tag)}</em>`:''}<div class="pr">${p.old?`<s>${money(p.old)}</s>`:''}<span>${money(p.price)}</span></div><div class="cta">${out?'Esgotado':'Pedir agora'}</div></div></button>`}).join('')}</div></div>`}
-  CATS.forEach(c=>{const it=list.filter(p=>p.cat===c);if(!it.length)return;if(!f&&c==='Promoções')return;
+  const isPromo=p=>!!p.promo;
+  if(!f){const st=list.filter(isPromo);if(st.length)h+=`<div class="sec promo" id="cat-Promoções" style="margin-top:6px"><h2>🔥 Promoções <small>${st.length} ${st.length>1?'ofertas':'oferta'}</small></h2><div class="stars">${st.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="star ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><span class="ribbon">Promoção</span><div class="ph">${thumb(p)}</div><div class="b"><b>${esc(p.name)}</b>${p.tag?`<em>${esc(p.tag)}</em>`:''}<div class="pr">${p.old?`<s>${money(p.old)}</s>`:''}<span>${money(p.price)}</span></div><div class="cta">${out?'Esgotado':'Pedir agora'}</div></div></button>`}).join('')}</div></div>`}
+  CATS.forEach(c=>{const it=list.filter(p=>p.cat===c&&(f||!p.promo));if(!it.length)return;if(!f&&c==='Promoções')return;
     h+=`<div class="sec" id="cat-${c}"><h2>${c} <small>${it.length} ${it.length>1?'itens':'item'}</small></h2><div class="gi">${it.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="item ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><div class="t"><h3>${esc(p.name)}${p.tag?`<span class="tag">${esc(p.tag)}</span>`:''}</h3><p>${esc(p.desc)}</p><div class="price">${money(p.price)}</div></div><div class="ph">${thumb(p)}${out?'<span class="out-tag">Esgotado</span>':'<span class="add">+</span>'}</div></button>`}).join('')}</div></div>`});
   if(!list.length)h=`<div class="empty">Nenhum produto encontrado para "${esc(filter)}".</div>`;
   $('#menu').innerHTML=h;
@@ -518,7 +521,8 @@ function renderCozinha(){
   $('#board').innerHTML=h;
   renderExtrasAdmin();
   const ma=$('#menuAdmin'),ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&ma.contains(ae))return;
-  ma.innerHTML=MENU.map(p=>`<div class="mrow"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
+  const am=[...MENU].sort((a,b)=>(b.promo-a.promo));
+  ma.innerHTML=`<div class="mini" style="padding:4px 0 8px">🔥 ${MENU.filter(p=>p.promo&&!p.hidden).length} na promoção · 🙈 ${MENU.filter(p=>p.hidden).length} ocultos. Só aparece em Promoções o que estiver marcado "Na promoção".</div>`+am.map(p=>`<div class="mrow${p.hidden?' hid':''}"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ${p.promo?'':'ghost'}" data-act="ppromo" data-id="${p.id}">${p.promo?'🔥 Na promoção':'Pôr na promoção'}</button><button class="btn sm ghost" data-act="phide" data-id="${p.id}">${p.hidden?'🙈 Oculto':'Visível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
 }
 function syncSettings(){const m={'s-pix':S.settings.pix,'s-pixtype':S.settings.pixType,'s-pixname':S.settings.pixName,'s-pixcity':S.settings.pixCity,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}pixCheck()}
 ['s-pix','s-pixtype','s-pixname','s-pixcity','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else if(id==='s-pixtype')S.settings.pixType=v;else if(id==='s-pixname')S.settings.pixName=v||'LANCHES DO BOY';else if(id==='s-pixcity')S.settings.pixCity=v||'BELO HORIZONTE';else S.settings.wa=v;saveSettings()}));
@@ -551,6 +555,7 @@ document.addEventListener('click',e=>{
   else if(a==='photo'){photoFor=id;$('#photoIn').click()}
   else if(a==='sold')setSold(id);
   else if(a==='price')savePrice(id);
+  else if(a==='ppromo'||a==='phide')toggleProd(id,a==='ppromo'?'promo':'hidden');
   else if(a==='geoon'){geoState='off';startGeo(true);renderMoto()}
   else if(a==='pdel')removeProduct(b,id);
   else if(a==='odetail')openOrderDetail(id);
@@ -746,7 +751,7 @@ function renderNewItemForm(){const f=$('#niF');if(!f||f.dataset.ready)return;f.d
     if(MENU.some(p=>p.name.toLowerCase()===name.toLowerCase())){err.textContent='Já existe um item com esse nome.';return}
     btn.disabled=true;const id=slug(name)+'-'+Math.random().toString(36).slice(2,6);
     const sort=MENU.length?Math.max(...MENU.map((p,i)=>p.sort!=null?p.sort:i))+1:0;
-    const{error}=await sb.from('products').insert({id,cat,name,price,descr:desc,opts,sold_out:false,sort});
+    const promo=!!($('#ni-promo')&&$('#ni-promo').checked)||cat==='Promoções';const{error}=await sb.from('products').insert({id,cat,name,price,descr:desc,opts,sold_out:false,sort,promo});
     btn.disabled=false;if(error){dbFail(error);return}
     f.reset();$('#ni-cat').value='Lanches';toast(name+' adicionado ao cardápio');await loadCatalog();
     const r=$('#pr-'+id);if(r)r.closest('.mrow').scrollIntoView({behavior:'smooth',block:'center'})});

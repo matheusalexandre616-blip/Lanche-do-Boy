@@ -256,6 +256,7 @@ body.has-tabbar .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .segs input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .segs input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
 .sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sumgrid .stat{padding:12px}.sumgrid .stat b{font-size:20px}
+.mrow.hid{opacity:.55}
 /* barra inferior */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
 .dock>div{max-width:640px;margin:0 auto;display:flex;gap:10px;pointer-events:auto}
@@ -413,6 +414,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
         <div class="f"><label for="ni-price">Preço (R$)</label><input id="ni-price" inputmode="decimal" placeholder="24,90"></div>
         <div class="f w"><label for="ni-desc">Descrição</label><textarea id="ni-desc" rows="2" maxlength="240" placeholder="Pão, hambúrguer, queijo, alface, tomate..."></textarea></div>
         <label class="opt w"><span>Lanche com adicionais e opção de retirar ingredientes</span><input type="checkbox" id="ni-opts" checked></label>
+        <label class="opt w"><span>🔥 Mostrar em Promoções</span><input type="checkbox" id="ni-promo"></label>
       </div>
       <div class="err" id="ni-e" role="alert"></div>
       <button class="btn" type="submit">Adicionar ao cardápio</button>
