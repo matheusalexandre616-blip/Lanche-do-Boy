@@ -759,7 +759,8 @@ async function removeProduct(b,id){const p=P[id];if(!confirmTap(b,'Confirmar'))r
 const GRP={code:null,person:'',tokens:{},data:null,sig:''};
 (function(){const g=LS.get('lb_grp',null);if(g&&g.code){GRP.code=g.code;GRP.person=g.person||'';GRP.tokens=g.tokens||{}}})();
 const saveGrp=()=>LS.set('lb_grp',GRP.code?{code:GRP.code,person:GRP.person,tokens:GRP.tokens}:null);
-const groupActive=()=>!!(!sess&&GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
+const custView=()=>!sess||PORTAL==='cliente';
+const groupActive=()=>!!(custView()&&GRP.code&&GRP.data&&GRP.data.status==='aberto'&&GRP.person);
 const groupLink=()=>location.origin+'/#grupo/'+GRP.code;
 const grpSub=g=>(g.items||[]).reduce((a,it)=>a+(+it.total),0);
 function clearGroup(){GRP.code=null;GRP.person='';GRP.tokens={};GRP.data=null;GRP.sig='';saveGrp();emit()}
@@ -794,7 +795,7 @@ function askGroupName(){const d=GRP.data;if(!d)return;
       GRP.person=v;saveGrp();closeSheet();emit();toast('Escolha seus lanches e toque em "Adicionar ao grupo"')})})}
 function groupDockBtn(){const d=GRP.data,n=(d.items||[]).reduce((a,it)=>a+it.qty,0);
   return `<button class="btn grow gbtn" data-act="gopen"><span><span class="cnt">${n}</span>👥 Grupo de ${esc(d.owner_name.split(' ')[0])}</span><b>${money(grpSub(d))}</b></button>`}
-function renderGroupBar(){const el=$('#grpBar');if(!el)return;if(sess){el.innerHTML='';return}
+function renderGroupBar(){const el=$('#grpBar');if(!el)return;if(!custView()){el.innerHTML='';return}
   if(groupActive()){const d=GRP.data,ppl=new Set(d.items.map(it=>it.person)).size;
     el.innerHTML=`<div class="gbar on"><div class="gicon">👥</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
   else el.innerHTML='';if(0)el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
@@ -874,18 +875,18 @@ function statusInfo(o){const PK=isPick(o),m=etaFor(o);
   return{steps,idx:steps.indexOf(o.status),lab,msg}}
 function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).sort((a,b)=>b.createdAt-a.createdAt).slice(0,3);
-  if(!act.length||sess){el.innerHTML='';return}
+  if(!act.length||!custView()){el.innerHTML='';return}
   el.innerHTML=act.map(o=>{const i=statusInfo(o);return `<button class="ostat s-${o.status}" data-act="track" aria-label="Acompanhar pedido #${o.code}: ${esc(i.lab)}">
     <div class="ostat-h"><span class="ostat-dot"></span><b>Pedido #${o.code}</b><span class="ostat-lab">${esc(i.lab)}</span></div>
     <div class="osteps" style="grid-template-columns:repeat(${i.steps.length},1fr)">${i.steps.map((x,k)=>`<i class="${k<=i.idx?'on':''}${k===i.idx?' cur':''}"></i>`).join('')}</div>
     <div class="ostat-f"><span>${i.msg}</span><span class="go">${o.status==='rota'?'Ver no mapa':'Acompanhar'}<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div></button>`}).join('')}
 let lastSt=null;
-function notifyCustomer(){if(sess)return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
+function notifyCustomer(){if(!custView())return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
   if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=isPick(o);
     const m={preparo:'Seu pedido #'+o.code+' está sendo preparado 🍔',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar 🏪':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega 🛵',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite! 😋',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
     if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
   lastSt=now}
-setInterval(()=>{if(!sess&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
+setInterval(()=>{if(custView()&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
 
 /* ------------------------------ acréscimos: editar preço, adicionar e remover ------------------------------ */
 const XSETS=[['default','Lanches',()=>EXTRAS],['mac','Macarrão',()=>EXTRAS_MAC],['misto','Misto',()=>EXTRAS_MISTO],['omelete','Omelete',()=>EXTRAS_OMELETE]];
@@ -916,7 +917,7 @@ function parsePrice(t){t=String(t||'').trim();if(!t)return NaN;return Math.round
 /* ------------------------------ barra inferior do cliente e categorias fixas ------------------------------ */
 let tbOn='home';
 function setTb(k){tbOn=k;$$('#tabbar [data-tb]').forEach(b=>{const on=b.dataset.tb===k;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')})}
-function renderTabbar(v){const tb=$('#tabbar');if(!tb)return;const show=v==='cliente'&&!sess;tb.hidden=!show;document.body.classList.toggle('has-tabbar',show);if(!show)return;
+function renderTabbar(v){const tb=$('#tabbar');if(!tb)return;const show=v==='cliente'&&custView();tb.hidden=!show;document.body.classList.toggle('has-tabbar',show);if(!show)return;
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).length,b1=$('#tb-orders');b1.hidden=!act;b1.textContent=act;
   const gn=groupActive()?GRP.data.items.reduce((a,it)=>a+it.qty,0):0,b2=$('#tb-group');b2.hidden=!groupActive();b2.textContent=gn||'•';
   const lb=$('#tb-acc-l');if(lb)lb.textContent=cust?cust.name.split(' ')[0]:'Entrar';setTb(tbOn)}
@@ -924,7 +925,8 @@ function openGroupIntro(){setTb('group');
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div>
   <div class="bd"><div class="card gcard"><div class="gicon">👥</div><div><b>Junte a turma num pedido só</b><div class="mini">Ideal para o escritório, a faculdade ou a família.</div></div></div>
   <ol class="howto"><li><b>Crie o grupo</b> e mande o link no WhatsApp.</li><li><b>Cada um escolhe</b> o próprio lanche, só com o nome, sem cadastro.</li><li><b>Você envia tudo junto</b>: uma entrega, uma taxa dividida, e o app mostra quanto cada um paga.</li></ol>
-  <button class="btn" data-act="gcreate">Criar pedido em grupo</button></div>`)}
+  <button class="btn" data-act="gcreate">Criar pedido em grupo</button>
+  <button class="btn ghost" data-act="shareapp">📤 Compartilhar o cardápio</button></div>`)}
 function openAccount(){if(!cust){openLogin();setTb('account');return}setTb('account');
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).length,tot=myOrders().length;
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Minha conta</h2></div>
@@ -940,7 +942,7 @@ function tbGo(k){
   if(k==='orders'){openTrack();setTb('orders');return}
   if(k==='group'){if(groupActive()){openGroup();setTb('group')}else openGroupIntro();return}
   if(k==='account')openAccount()}
-document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb)});
+document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb);if(e.target.closest('[data-act=shareapp]')){const url=location.origin+'/',msg='🍔 Peça no Lanches do Boy: '+url;if(navigator.share)navigator.share({title:'Lanches do Boy',text:msg,url}).catch(()=>{});else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}});
 /* categorias fixas no topo e marcação da seção atual */
 (function(){const root=document.documentElement,top=$('#chrome');let tk=false;
   function sync(){const chips=$('#chips');if(!chips||$('#v-cliente').hidden)return;
