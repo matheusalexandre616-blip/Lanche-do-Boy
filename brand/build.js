@@ -38,6 +38,7 @@ const common = [
   ['O melhor sabor de BH', B.slogan],
   ['Lanches do Boy', B.name],
   ['LANCHES DO BOY', B.name.toUpperCase()],
+  ['"Boy Loja"', '"'+(B.shortName||B.name)+' Loja"'], ['"Boy Moto"', '"'+(B.shortName||B.name)+' Moto"'], ['"Boy Motoboy"', '"'+(B.shortName||B.name)+' Moto"'],
   ['>LB</text>', '>'+(B.initials||'LB')+'</text>'],
   ['lanches-do-boy', B.slug],
   ['lat:-19.8415,lng:-43.9710', `lat:${B.lat},lng:${B.lng}`],

@@ -5,6 +5,7 @@
   "since": "Desde 2020",
   "slug": "burger-demo",
   "initials": "BD",
+  "shortName": "Demo",
   "addrFull": "Rua da Demonstração, 100, Belo Horizonte, Brasil",
   "addrShort": "Rua da Demonstração, 100",
   "lat": -19.8415,
