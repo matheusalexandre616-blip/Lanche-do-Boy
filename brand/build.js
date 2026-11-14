@@ -37,6 +37,8 @@ const common = [
   ['Desde 2014', B.since], ['desde 2014', B.since.toLowerCase()],
   ['O melhor sabor de BH', B.slogan],
   ['Lanches do Boy', B.name],
+  ['LANCHES DO BOY', B.name.toUpperCase()],
+  ['>LB</text>', '>'+(B.initials||'LB')+'</text>'],
   ['lanches-do-boy', B.slug],
   ['lat:-19.8415,lng:-43.9710', `lat:${B.lat},lng:${B.lng}`],
 ];
