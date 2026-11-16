@@ -462,7 +462,7 @@ function openCheckout(opts){
         if(error){btn.disabled=false;btn.textContent='Enviar pedido';dbFail(error);return}
         const o=rowToOrder(data);S.orders[o.id]=o;
         if(o.mode!=='retirada')LS.set('lb_cust',{name:o.customer.name,phone:o.customer.phone,cep:o.addr.cep,street:o.addr.street,num:o.addr.number,bairro:o.addr.bairro,city:o.addr.city,comp:o.addr.comp});
-        if(G)clearGroup();else{cart=[];saveCart()}closeSheet();toast('Pedido enviado para a hamburgueria');openSent(o);loadOrders()});
+        if(G)clearGroup();else{cart=[];saveCart()}closeSheet();openSent(o);loadOrders()});
     });
   });
 }
