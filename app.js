@@ -351,7 +351,7 @@ function thumb(p){const u=S.photos[p.id]||PHOTOS[p.id];if(u)return `<img src="${
 function renderCliente(){
   const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
   renderGroupBar();renderOrderStatus();
-  $('#feeMin').textContent='a partir de '+money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
+  $('#feeMin').textContent=money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
   const open=storeOpen();const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':(storeNext()||'Loja fechada');
   $('#chips').innerHTML=CATS.filter(c=>c==='Promoções'?MENU.some(p=>p.promo&&!p.hidden):MENU.some(p=>p.cat===c&&!p.hidden&&!p.promo)).map(c=>`<button class="chip ${catOn===c?'on':''}" data-act="cat" data-c="${c}">${c}</button>`).join('');
   const f=filter.trim().toLowerCase();
@@ -958,13 +958,14 @@ function tbGo(k){
 document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb);if(e.target.closest('[data-act=shareapp]')){const url=location.origin+'/',msg='Peça no Lanches do Boy: '+url;if(navigator.share)navigator.share({title:'Lanches do Boy',text:msg,url}).catch(()=>{});else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}});
 /* categorias fixas no topo e marcação da seção atual */
 (function(){const root=document.documentElement,top=$('#chrome');let tk=false;
-  function sync(){const chips=$('#chips');if(!chips||$('#v-cliente').hidden)return;
-    const h=top.classList.contains('hide')?0:top.offsetHeight;root.style.setProperty('--hdrH',Math.max(0,Math.round(h))+'px');
+  function sync(){const h=top.classList.contains('hide')?0:top.offsetHeight;root.style.setProperty('--hdrH',Math.max(0,Math.round(h))+'px');
+    top.classList.toggle('scrolled',window.scrollY>4);
+    const chips=$('#chips');if(!chips||$('#v-cliente').hidden)return;
     const cb=chips.getBoundingClientRect();chips.classList.toggle('stuck',cb.top<=h+1&&window.scrollY>200);
     const secs=$$('#menu .sec');let curSec=null;secs.forEach(sc=>{if(sc.getBoundingClientRect().top<=cb.bottom+12)curSec=sc});
     const c=curSec?curSec.id.slice(4):null;if(c&&c!==catOn){catOn=c;$$('#chips .chip').forEach(x=>{const on=x.dataset.c===c;x.classList.toggle('on',on);if(on)chips.scrollTo({left:x.offsetLeft-16,behavior:'smooth'})})}}
   window.addEventListener('scroll',()=>{if(tk)return;tk=true;requestAnimationFrame(()=>{tk=false;sync()})},{passive:true});
-  window.addEventListener('resize',sync);setTimeout(sync,600);new MutationObserver(sync).observe(top,{attributes:true,attributeFilter:['class']})})();
+  window.addEventListener('resize',sync);window.addEventListener('hashchange',()=>setTimeout(sync,50));setTimeout(sync,0);setTimeout(sync,600);try{new ResizeObserver(sync).observe(top)}catch(e){}new MutationObserver(sync).observe(top,{attributes:true,attributeFilter:['class']})})();
 
 /* ------------------------------ geocodificação com tentativas ------------------------------ */
 async function geocodeAddr(a){const city=String(a.city||'Belo Horizonte - MG').split(' - ')[0].trim()||'Belo Horizonte';
@@ -998,7 +999,7 @@ async function testPush(btn){btn.disabled=true;try{const{data:{session}}=await s
   const j=await r.json().catch(()=>({}));toast(r.ok&&j.sent?'Notificação de teste enviada. Ela chega em alguns segundos.':(j.error||'Não foi possível enviar o teste'))}catch(e){toast('Sem conexão para enviar o teste')}btn.disabled=false;chime()}
 function renderAlertBar(){const el=$('#alertBar');if(!el)return;if(!isLoja()){el.innerHTML='';return}
   const st=pushState;let h;
-  if(st==='on')h=`<div class="geo on"><span class="geo-dot"></span><div style="flex:1"><b>${I('bell')} Alertas ligados neste celular</b><div class="mini">Pedido novo apita e chega notificação, mesmo com o app fechado.</div></div><button class="btn sm ghost" data-act="ptest">Testar</button></div>`;
+  if(st==='on')h='';
   else if(st==='ios')h=`<div class="geo off"><div><b>${I('bell')} Receber pedidos com o iPhone bloqueado</b><div class="mini">1. Toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b>.<br>2. Abra a hamburgueria pelo ícone novo e toque em <b>Ativar alertas</b>.<br>Enquanto isso, com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
   else if(st==='denied')h=`<div class="geo off"><div><b>${I('belloff')} Notificações bloqueadas</b><div class="mini">Libere nas configurações do celular: Ajustes → Notificações → ${isIOS()?'Boy Loja':'Chrome / navegador'} → Permitir. Depois recarregue esta página.</div></div></div>`;
   else if(st==='nosupport')h=`<div class="geo off"><div><b>${I('bell')} Alertas</b><div class="mini">Este navegador não recebe notificações. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;

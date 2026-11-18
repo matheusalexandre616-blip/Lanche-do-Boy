@@ -37,7 +37,7 @@
   --plate:#2B1E1B; --sh1:0 1px 2px rgba(0,0,0,.4),0 3px 10px rgba(0,0,0,.3); --sh2:0 10px 30px rgba(0,0,0,.55); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 132px;-webkit-tap-highlight-color:transparent}
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:env(safe-area-inset-top,0px) 132px;-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -49,7 +49,8 @@ body[data-v=cliente] .wrap{max-width:1040px}body[data-v=cozinha] .wrap{max-width
 
 /* cabeçalho */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:12px 0 12px}
-.top{transition:transform .28s ease,box-shadow .2s}.top.hide{transform:translateY(calc(-100% - 12px));box-shadow:none}
+.top{transition:transform .28s ease,box-shadow .2s}.top.hide{transform:translateY(calc(-100% - 12px - env(safe-area-inset-top,0px)));box-shadow:none}
+.top.scrolled:not(.hide)::before{box-shadow:0 10px 14px -12px rgba(0,0,0,.55)}
 .sec,.hero,#v-cozinha details.panel{scroll-margin-top:96px}
 .top header{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
 .top .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
@@ -228,7 +229,7 @@ body.has-tabbar .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 @media (prefers-reduced-motion:no-preference){.geo.on .geo-dot{animation:pulse 1.6s ease-in-out infinite;--c:var(--ok)}}
 .tsbox{min-height:66px;display:grid;place-items:center}
 /* hamburgueria em abas */
-.ktabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:5px;margin:4px 0 14px;box-shadow:var(--sh1);position:sticky;top:calc(var(--hdrH,0px) + 4px);z-index:14}
+.ktabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:5px;margin:4px 0 14px;box-shadow:var(--sh1);}
 .ktabs button{position:relative;border:0;background:none;color:var(--muted);font-weight:800;font-size:14.5px;padding:12px 6px;border-radius:11px;min-height:48px}
 .ktabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .ktabs .badge{position:absolute;top:4px;right:8px}
@@ -344,6 +345,26 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
 .ii{width:1.15em;height:1.15em;vertical-align:-.2em;flex:none;display:inline-block}
 .gicon .ii{width:22px;height:22px}.mk .ii{width:19px;height:19px;color:#fff;vertical-align:middle}.stat .ii{width:26px;height:26px}
 .ktabs button{display:flex;align-items:center;justify-content:center;gap:6px}
+.facts .pill{white-space:nowrap}
+@media (max-width:420px){.facts small{font-size:9.5px;letter-spacing:.06em}.facts b{font-size:14px}.facts .pill{font-size:11.5px;padding:4px 8px}}
+.kbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hdrH,0px));z-index:14;background:var(--bg);margin:0 -16px 14px;padding:4px 16px 8px;transition:top .28s ease}
+.kbar .ktabs{margin:0}
+details.panel .in{grid-template-columns:minmax(0,1fr)}
+.view,.view>*,.board,.col{min-width:0}
+html{overflow-x:clip}
+.top::before{content:"";position:absolute;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);background:var(--bg);z-index:-1;pointer-events:none}
+.btn.acc-row{justify-content:space-between;text-align:left}
+.sheet{max-height:calc(100% - env(safe-area-inset-top,0px) - 10px)}
+@media (min-width:700px){.sheet{max-height:min(90dvh,calc(100% - env(safe-area-inset-top,0px) - 24px))}}
+@media (max-width:420px){#ajustesPanel .g2,#invF.g2{grid-template-columns:1fr}}
+@media (max-width:420px){
+ .hrow{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);row-gap:6px;padding:6px 0;border-top:1px solid var(--line2)}
+ .hrow .hday{grid-column:1/-1}
+ .hrow input[type=time]{width:100%;min-width:0;padding:8px}
+ .mrow{grid-template-columns:52px minmax(0,1fr)}
+ .mrow .a{grid-column:1/-1;justify-content:flex-start}
+}
+.hrow input[type=time]{text-align:center}
 </style>
 </head>
 <body>
@@ -387,7 +408,7 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
       <div><h1>Lanches<br>do Boy</h1><p class="slogan">O melhor sabor de BH</p><span class="since">Desde 2014</span></div>
       <div class="art" id="heroArt"></div>
     </div>
-    <div class="infocard"><div class="facts"><div><small>Status</small><span class="pill" id="openPill"><i></i><span>Aberta</span></span></div><div><small>Entrega</small><b id="etaTxt">40 a 55 min</b></div><div><small>Taxa</small><b id="feeMin">a partir de R$ 4</b></div></div><button type="button" class="addr" data-act="where" aria-label="Como chegar: ver o endereço no Google Maps ou Waze"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="at">Avenida João XXIII, 439, Belo Horizonte, Brasil</span><span class="go">Como chegar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button></div>
+    <div class="infocard"><div class="facts"><div><small>Status</small><span class="pill" id="openPill"><i></i><span>Aberta</span></span></div><div><small>Entrega</small><b id="etaTxt">40 a 55 min</b></div><div><small>Taxa a partir de</small><b id="feeMin">R$ 4,00</b></div></div><button type="button" class="addr" data-act="where" aria-label="Como chegar: ver o endereço no Google Maps ou Waze"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="at">Avenida João XXIII, 439, Belo Horizonte, Brasil</span><span class="go">Como chegar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button></div>
     <div id="grpBar"></div>
     <label class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Busque um produto" autocomplete="off" aria-label="Buscar produto"></label>
     <div class="chips" id="chips"></div>
@@ -396,11 +417,11 @@ details.panel .in{padding-bottom:16px;display:grid;gap:12px}
   </section>
 
   <section class="view wrap wide" id="v-cozinha" hidden>
-    <nav class="ktabs" role="tablist" aria-label="Hamburgueria">
+    <div class="kbar"><nav class="ktabs" role="tablist" aria-label="Hamburgueria">
       <button role="tab" data-kt="pedidos" aria-selected="true"><svg class="ii" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg> Pedidos <span class="badge" id="kt-badge" hidden></span></button>
       <button role="tab" data-kt="cardapio" aria-selected="false"><svg class="ii" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h16a8 6 0 0 0-16 0z"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1"/><path d="M4 18h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z"/></svg> Cardápio</button>
       <button role="tab" data-kt="ajustes" aria-selected="false"><svg class="ii" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/><circle cx="12" cy="12" r="6.5"/></svg> Ajustes</button>
-    </nav>
+    </nav></div>
     <div data-kp="pedidos">
     <div id="alertBar" style="margin-bottom:10px"></div>
     <div id="storeBar"></div>
