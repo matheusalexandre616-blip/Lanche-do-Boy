@@ -365,6 +365,12 @@ html{overflow-x:clip}
  .mrow .a{grid-column:1/-1;justify-content:flex-start}
 }
 .hrow input[type=time]{text-align:center}
+.cpush{display:flex;gap:10px;align-items:center;background:var(--surface);border:1.5px dashed color-mix(in srgb,var(--info) 50%,var(--line));border-radius:var(--r2);padding:10px 12px;font-size:13.5px;color:var(--ink);text-align:left}
+.cpush>.ii{width:22px;height:22px;color:var(--info)}.cpush span{flex:1;min-width:0}.cpush b{display:block}
+.cpush.ok{border-style:solid;border-color:transparent;background:var(--info-soft)}
+.arriving{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:90;width:min(94vw,440px);display:flex;gap:12px;align-items:center;background:var(--info);color:#fff;border-radius:var(--r3);padding:14px 14px 14px 16px;box-shadow:var(--sh2);animation:up .25s ease-out}
+.arriving>.ii{width:30px;height:30px;flex:none}.arriving div{flex:1;min-width:0}.arriving b{display:block;font-size:16px}.arriving span{font-size:13.5px;opacity:.95}
+.arriving .x{background:rgba(255,255,255,.2);color:#fff}
 </style>
 </head>
 <body>

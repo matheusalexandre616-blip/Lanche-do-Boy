@@ -66,6 +66,7 @@ function openSent(o){
   const html=`<div class="hd"><button class="back" data-act="close" aria-label="Voltar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Voltar</span></button><h2>Pedido enviado</h2></div><div class="bd">
   <div class="card" style="background:var(--ok-soft);border-color:transparent"><b style="color:var(--ok)">Pedido recebido pela hamburgueria!</b><div class="mini" style="color:var(--ok)">Guarde o resumo no seu WhatsApp para acompanhar.</div></div>
   ${o.pay.method==='pix'?pixBox(o):''}
+  ${o.mode==='entrega'?`<div id="sentPush">${custPushBox()}</div>`:''}
   <div class="wamsg"><pre>${esc(msg)}</pre></div>
   <a class="btn ok" target="_blank" rel="noopener" href="${waLink(store?S.settings.wa:o.customer.phone,msg)}">Enviar resumo pelo WhatsApp</a>
   <button class="btn ghost" data-act="copy" data-t="${esc(msg)}">Copiar mensagem</button>
@@ -187,7 +188,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 const S={orders:{},rows:[],settings:{open:true,autoHours:false,hours:null,pausedUntil:null,pix:'',pixType:'cnpj',pixName:'LANCHES DO BOY',pixCity:'BELO HORIZONTE',wa:'',drivers:[],soldOut:{},feeDefault:8},photos:{},db:true,drivers:[],user:null};
 let rq=0;function emit(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
 function dbFail(e){const m=(e&&e.message)||'Não foi possível concluir. Tente de novo.';toast(m);console.warn(e)}
-const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega',grp:r.group_id||null}};
+const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r.id,code:r.code,createdAt:Date.parse(r.created_at),status:r.status,driver:i<0?null:i,cid:r.customer_id,customer:r.customer,addr:r.addr,items:r.items,subtotal:+r.subtotal,fee:+r.fee,total:+r.total,pay:r.pay,pixPaid:r.pix_paid,paid:r.paid,history:r.history||[],drvId:r.driver,dlat:r.dest_lat,dlng:r.dest_lng,near:r.near_notified_at?Date.parse(r.near_notified_at):null,dist:r.dist_km,eta:r.eta_min,mode:r.mode||'entrega',grp:r.group_id||null}};
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').is('hidden_at',null).order('created_at',{ascending:false}).limit(300);
@@ -241,7 +242,7 @@ async function refreshRole(){setTimeout(checkPush,300);
   if(!S.user){setSess(null);S.drivers=[];rebuildOrders();emit();return}
   const{data}=await sb.rpc('my_role');
   if(data==='loja'||data==='motoboy'){setSess({role:data,drv:0})}else setSess(null);
-  await loadStaff();await loadOrders();renderTeam();emit()}
+  await loadStaff();await loadOrders();renderTeam();emit();setTimeout(custPushSync,800)}
 function applyUser(u){S.user=u||null;const m=(u&&u.user_metadata)||{};cust=u?{name:m.name||loginOf(u.email).split('@')[0],phone:m.phone||'',email:u.email}:null;
   if(cust){LS.set('lb_cust',Object.assign({},LS.get('lb_cust',{}),{name:cust.name,phone:cust.phone}))}}
 async function initData(){
@@ -884,7 +885,7 @@ function statusInfo(o){const PK=isPick(o),m=etaFor(o);
   const msg={novo:'Aguardando a hamburgueria aceitar.',
     preparo:'Seu pedido está sendo preparado.'+(m?` ${PK?'Pronto':'Chega'} em ~${m} min.`:''),
     pronto:PK?'Seu pedido está pronto! Pode vir retirar.':'Pronto! Aguardando o motoboy sair.',
-    rota:I('moto')+' O motoboy está a caminho'+(m?`, chega em ~${m} min`:'')+'. Toque para ver no mapa.'}[o.status]||'';
+    rota:o.near?I('moto')+' <b>O motoboy está chegando!</b> Fique de olho no portão.':I('moto')+' O motoboy está a caminho'+(m?`, chega em ~${m} min`:'')+'. Toque para ver no mapa.'}[o.status]||'';
   return{steps,idx:steps.indexOf(o.status),lab,msg}}
 function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).sort((a,b)=>b.createdAt-a.createdAt).slice(0,3);
@@ -892,14 +893,38 @@ function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
   el.innerHTML=act.map(o=>{const i=statusInfo(o);return `<button class="ostat s-${o.status}" data-act="track" aria-label="Acompanhar pedido #${o.code}: ${esc(i.lab)}">
     <div class="ostat-h"><span class="ostat-dot"></span><b>Pedido #${o.code}</b><span class="ostat-lab">${esc(i.lab)}</span></div>
     <div class="osteps" style="grid-template-columns:repeat(${i.steps.length},1fr)">${i.steps.map((x,k)=>`<i class="${k<=i.idx?'on':''}${k===i.idx?' cur':''}"></i>`).join('')}</div>
-    <div class="ostat-f"><span>${i.msg}</span><span class="go">${o.status==='rota'?'Ver no mapa':'Acompanhar'}<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div></button>`}).join('')}
+    <div class="ostat-f"><span>${i.msg}</span><span class="go">${o.status==='rota'?'Ver no mapa':'Acompanhar'}<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div></button>`}).join('')+(act.some(o=>!isPick(o))?custPushBox():'')}
 let lastSt=null;
 function notifyCustomer(){if(!custView())return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
   if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=isPick(o);
     const m={preparo:'Seu pedido #'+o.code+' está sendo preparado',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite!',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
-    if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
+    if(m){toast(m);vib([120,60,120])}})}
+  mine.forEach(o=>{if(o.status!=='rota'||!o.near)return;const seen=LS.get('lb_near',[]);if(seen.includes(o.id))return;
+    LS.set('lb_near',seen.concat(o.id).slice(-20));arrivingAlert(o)});
   lastSt=now}
-setInterval(()=>{if(custView()&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
+const vib=p=>{try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(p)}catch(e){}};
+function arrivingAlert(o){unlockAudio();chime();vib([400,150,400,150,400]);
+  const d=document.createElement('div');d.className='arriving';d.setAttribute('role','alert');
+  d.innerHTML=`${I('moto')}<div><b>Seu pedido está chegando!</b><span>Pedido #${o.code}: o motoboy está a poucos minutos. Fique de olho no portão.</span></div><button class="x" aria-label="Fechar">×</button>`;
+  d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);setTimeout(()=>d.remove(),15000)}
+/* aviso de chegada por notificação (cliente) */
+const custPushOn=()=>pushOK()&&Notification.permission==='granted';
+function custPushBox(){if(!S.user||sess)return '';
+  if(custPushOn())return `<div class="cpush ok">${I('bell')}<span>Você vai receber um aviso quando o motoboy estiver chegando.</span></div>`;
+  if(!pushOK()){if(isIOS()&&!standalone())return `<div class="cpush">${I('bell')}<span><b>Quer ser avisado quando o motoboy estiver chegando?</b> No iPhone, toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>. Abra o app pelo ícone novo e ative o aviso.</span></div>`;return ''}
+  if(Notification.permission==='denied')return `<div class="cpush">${I('belloff')}<span>Avisos bloqueados. Para ser avisado quando o motoboy estiver chegando, libere as notificações nos ajustes do celular.</span></div>`;
+  return `<div class="cpush">${I('bell')}<span><b>Avise-me quando o motoboy estiver chegando</b>Mandamos uma notificação no seu celular.</span><button class="btn sm" data-act="cpush">Ativar</button></div>`}
+async function subscribePush(){const reg=await navigator.serviceWorker.register('/sw.js');let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUB)});
+  const j=sub.toJSON();const{error}=await sb.rpc('push_subscribe',{ep:j.endpoint,k:j.keys.p256dh,a:j.keys.auth,ua:navigator.userAgent.slice(0,200)});if(error)throw error}
+async function enableCustPush(btn){if(!pushOK()){toast('Este navegador não recebe notificações');return}
+  btn.disabled=true;const perm=await Notification.requestPermission();
+  if(perm!=='granted'){btn.disabled=false;toast('Sem permissão, o aviso aparece só com o app aberto');render();return}
+  try{await subscribePush();toast('Pronto! Vamos avisar quando o motoboy estiver chegando')}catch(e){console.warn(e);toast('Não foi possível ativar agora. Tente de novo.')}
+  btn.disabled=false;render();if($('#sentPush'))$('#sentPush').innerHTML=custPushBox()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act=cpush]');if(b){e.stopPropagation();enableCustPush(b)}},true);
+async function custPushSync(){if(!S.user||sess||!custPushOn())return;try{await subscribePush()}catch(e){}}
+setInterval(()=>{if(custView()&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota')){loadLoc();loadOrders()}renderOrderStatus()}},15000);
 
 /* ------------------------------ acréscimos: editar preço, adicionar e remover ------------------------------ */
 const XSETS=[['default','Lanches',()=>EXTRAS],['mac','Macarrão',()=>EXTRAS_MAC],['misto','Misto',()=>EXTRAS_MISTO],['omelete','Omelete',()=>EXTRAS_OMELETE]];
