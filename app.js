@@ -1,4 +1,6 @@
 const PHOTOS={};let LOGO='',LOGO_SM='';
+const ICONS={users:'<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"/><path d="M15.5 4.65a3.5 3.5 0 0 1 0 6.7"/>',user:'<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c.9-3.8 3.8-5.8 7.5-5.8s6.6 2 7.5 5.8"/>',burger:'<path d="M4 11h16a8 6 0 0 0-16 0z"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1"/><path d="M4 18h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z"/>',flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',moto:'<circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/>',receipt:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/>',store:'<path d="M4 9.5 5.6 4h12.8L20 9.5"/><path d="M4 9.5c0 1.4 1.1 2.5 2.5 2.5S9 10.9 9 9.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-4.5h4V20"/>',chart:'<path d="M3 20.5h18"/><path d="M6.5 20.5v-6M12 20.5v-11M17.5 20.5V5"/>',eyeoff:'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',share:'<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',bag:'<path d="M6 7.5h12l-1 12.5H7L6 7.5z"/><path d="M9 7.5a3 3 0 0 1 6 0"/>',pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',bell:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/>',belloff:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/><path d="M3 3l18 18"/>',pix:'<path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="m8.5 12 3.5-3.5 3.5 3.5-3.5 3.5z"/>',cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>',card:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>',home:'<path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
+const I=(n,c)=>'<svg class="ii'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';
 
 (function(){
 "use strict";
@@ -40,23 +42,23 @@ const DASH='- - - - - - - - - - -',LINE='------------------------------------';
 function orderMsg(o,intro){
   const L=[];
   if(intro!==false)L.push('Muito obrigado por realizar seu pedido conosco, *'+o.customer.name+'*! Segue abaixo um resumo do seu pedido','');
-  L.push('*Pedido #'+o.code+'*'+(o.items.some(it=>it.person)?' · 👥 Pedido em grupo':''),LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'');
+  L.push('*Pedido #'+o.code+'*'+(o.items.some(it=>it.person)?' · Pedido em grupo':''),LINE,'*TOTAL = '+money(o.total)+'*',LINE,'');
   let lastP=null;
-  o.items.forEach(it=>{if(it.person&&it.person!==lastP){lastP=it.person;L.push('👤 *'+it.person+'*','')}L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
+  o.items.forEach(it=>{if(it.person&&it.person!==lastP){lastP=it.person;L.push('*'+it.person+'*','')}L.push('*'+it.qty+'x '+it.name+'* ('+money(it.unit*it.qty)+')');
     (it.extras||[]).forEach(x=>L.push('  (1x) '+x));(it.removed||[]).forEach(x=>L.push('  (1x) Retirar '+x));if(it.note)L.push('  Obs.: '+it.note);
     L.push('','Subtotal do item: '+money(it.unit*it.qty),DASH,'')});
   const PK=isPick(o);
-  if(PK)L.push(LINE,'▶️ *Retirada no local*','','Nome: '+o.customer.name,'Retirar em: '+STORE.addr.replace(', Brasil',''),'WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: grátis (retirada)','','🕐 Pronto para retirar em aprox. '+etaRange(o.eta),'');
-  else{L.push(LINE,'▶️ *Dados para entrega*','',
+  if(PK)L.push(LINE,'*Retirada no local*','','Nome: '+o.customer.name,'Retirar em: '+STORE.addr.replace(', Brasil',''),'WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: grátis (retirada)','','Pronto para retirar em aprox. '+etaRange(o.eta),'');
+  else{L.push(LINE,'*Dados para entrega*','',
     'Nome: '+o.customer.name,'Endereço: '+o.addr.street+', nº '+o.addr.number,'Bairro: '+o.addr.bairro+(o.addr.cep?'\nCEP: '+o.addr.cep:''));
   if(o.addr.comp)L.push('Complemento/Referência: '+o.addr.comp);
-  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','🕐 Tempo de Entrega: aprox. '+etaRange(o.eta),'')}
+  L.push('WhatsApp: '+fmtPhone(o.customer.phone),'','Taxa de Entrega: '+money(o.fee),'','Tempo de Entrega: aprox. '+etaRange(o.eta),'')}
   L.push(
-    LINE,'▶️ *TOTAL = '+money(o.total)+'*',LINE,'','▶️ *PAGAMENTO*','');
+    LINE,'*TOTAL = '+money(o.total)+'*',LINE,'','*PAGAMENTO*','');
   const m=o.pay.method;
   L.push(m==='pix'?'Pagamento por Pix'+(S.settings.pix?'\nChave Pix: '+S.settings.pix:''):m==='dinheiro'?'Pagamento em dinheiro na '+(PK?'retirada':'entrega')+(o.pay.change?'\nTroco para: '+money(o.pay.change):''):'Pagamento no cartão na '+(PK?'retirada':'entrega'));
-  const ppl=groupPeople(o);if(ppl.length>1){const fs=o.fee/ppl.length;L.push('',LINE,'▶️ *QUANTO CADA UM PAGA*','');ppl.forEach(p=>L.push(p.person+': '+money(p.sub+fs)+(o.fee?' (lanches '+money(p.sub)+' + taxa '+money(fs)+')':'')))}
-  L.push('','🍔 Lanches do Boy · Av. João XXIII, 439');
+  const ppl=groupPeople(o);if(ppl.length>1){const fs=o.fee/ppl.length;L.push('',LINE,'*QUANTO CADA UM PAGA*','');ppl.forEach(p=>L.push(p.person+': '+money(p.sub+fs)+(o.fee?' (lanches '+money(p.sub)+' + taxa '+money(fs)+')':'')))}
+  L.push('','Lanches do Boy · Av. João XXIII, 439');
   return L.join('\n');
 }
 function openSent(o){
@@ -240,7 +242,7 @@ async function refreshRole(){setTimeout(checkPush,300);
   const{data}=await sb.rpc('my_role');
   if(data==='loja'||data==='motoboy'){setSess({role:data,drv:0})}else setSess(null);
   await loadStaff();await loadOrders();renderTeam();emit()}
-function applyUser(u){S.user=u||null;const m=(u&&u.user_metadata)||{};cust=u?{name:m.name||(u.email||'').split('@')[0],phone:m.phone||'',email:u.email}:null;
+function applyUser(u){S.user=u||null;const m=(u&&u.user_metadata)||{};cust=u?{name:m.name||loginOf(u.email).split('@')[0],phone:m.phone||'',email:u.email}:null;
   if(cust){LS.set('lb_cust',Object.assign({},LS.get('lb_cust',{}),{name:cust.name,phone:cust.phone}))}}
 async function initData(){
   const sy=$('#sync');sy.innerHTML='<i></i><span>Ao vivo</span>';
@@ -356,7 +358,7 @@ function renderCliente(){
   const list=MENU.filter(p=>!p.hidden&&(!f||(p.name+' '+p.desc).toLowerCase().includes(f)));
   let h='';
   const isPromo=p=>!!p.promo;
-  if(!f){const st=list.filter(isPromo);if(st.length)h+=`<div class="sec promo" id="cat-Promoções" style="margin-top:6px"><h2>🔥 Promoções <small>${st.length} ${st.length>1?'ofertas':'oferta'}</small></h2><div class="stars">${st.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="star ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><span class="ribbon">Promoção</span><div class="ph">${thumb(p)}</div><div class="b"><b>${esc(p.name)}</b>${p.tag?`<em>${esc(p.tag)}</em>`:''}<div class="pr">${p.old?`<s>${money(p.old)}</s>`:''}<span>${money(p.price)}</span></div><div class="cta">${out?'Esgotado':'Pedir agora'}</div></div></button>`}).join('')}</div></div>`}
+  if(!f){const st=list.filter(isPromo);if(st.length)h+=`<div class="sec promo" id="cat-Promoções" style="margin-top:6px"><h2>${I('flame')} Promoções <small>${st.length} ${st.length>1?'ofertas':'oferta'}</small></h2><div class="stars">${st.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="star ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><span class="ribbon">Promoção</span><div class="ph">${thumb(p)}</div><div class="b"><b>${esc(p.name)}</b>${p.tag?`<em>${esc(p.tag)}</em>`:''}<div class="pr">${p.old?`<s>${money(p.old)}</s>`:''}<span>${money(p.price)}</span></div><div class="cta">${out?'Esgotado':'Pedir agora'}</div></div></button>`}).join('')}</div></div>`}
   CATS.forEach(c=>{const it=list.filter(p=>p.cat===c&&(f||!p.promo));if(!it.length)return;if(!f&&c==='Promoções')return;
     h+=`<div class="sec" id="cat-${c}"><h2>${c} <small>${it.length} ${it.length>1?'itens':'item'}</small></h2><div class="gi">${it.map(p=>{const out=S.settings.soldOut[p.id];return `<button class="item ${out?'out':''}" data-act="prod" data-id="${p.id}" ${out?'disabled':''}><div class="t"><h3>${esc(p.name)}${p.tag?`<span class="tag">${esc(p.tag)}</span>`:''}</h3><p>${esc(p.desc)}</p><div class="price">${money(p.price)}</div></div><div class="ph">${thumb(p)}${out?'<span class="out-tag">Esgotado</span>':'<span class="add">+</span>'}</div></button>`}).join('')}</div></div>`});
   if(!list.length)h=`<div class="empty">Nenhum produto encontrado para "${esc(filter)}".</div>`;
@@ -500,16 +502,16 @@ function orderCard(o){
   else if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
   if(o.status==='rota')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Confirmar entrega</button>`;
   a+=`${o.customer.phone?`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`:''}<button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
-  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">🛵 ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='balcao'?'<span class="pill">🧾 Balcão</span>':isPick(o)?'<span class="pill">🏪 Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
+  const dr=o.driver!=null&&o.driver!==''?`<span class="pill">${I('moto')} ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='balcao'?'<span class="pill">'+I('receipt')+' Balcão</span>':isPick(o)?'<span class="pill">'+I('store')+' Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
   return `<article class="o ${o.status==='novo'?'new':''}"><div class="h"><b>#${o.code}</b><span class="mini">${hhmm(o.createdAt)} · há ${ago(o.createdAt)}</span></div>
-   <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='balcao'?'🧾 Pedido de balcão':isPick(o)?'🏪 Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)}${o.customer.phone?' · '+esc(fmtPhone(o.customer.phone)):''}</span></div>${itemsHtml(o)}
-   <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.grp?`<span class="pill">👥 Grupo · ${groupPeople(o).length} pessoas</span>`:''}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
+   <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='balcao'?I('receipt')+' Pedido de balcão':isPick(o)?I('store')+' Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)}${o.customer.phone?' · '+esc(fmtPhone(o.customer.phone)):''}</span></div>${itemsHtml(o)}
+   <div class="meta"><b style="color:var(--ink)">${money(o.total)}</b>${payBadge(o)}${dr}${o.grp?`<span class="pill">${I('users')} Grupo · ${groupPeople(o).length} pessoas</span>`:''}${o.demo?'<span class="pill closed">exemplo</span>':''}</div><div class="acts">${a}</div></article>`}
 function renderCozinha(){
   const os=Object.values(S.orders).sort((a,b)=>a.createdAt-b.createdAt);
   const today=os.filter(o=>new Date(o.createdAt).toDateString()===new Date().toDateString()&&o.status!=='cancelado');
   const rev=today.reduce((a,o)=>a+o.total,0);
   const cozinha=os.filter(o=>o.status==='novo'||o.status==='preparo').length;
-  $('#stats').innerHTML=`<div class="stat"><b>${today.length}</b><span>Pedidos hoje</span></div><div class="stat"><b>${money(rev)}</b><span>Vendido hoje</span></div><div class="stat"><b>${cozinha}</b><span>Na cozinha agora</span></div><button class="stat statbtn" data-act="daysum"><b>📊</b><span>Resumo do dia</span></button>`;
+  $('#stats').innerHTML=`<div class="stat"><b>${today.length}</b><span>Pedidos hoje</span></div><div class="stat"><b>${money(rev)}</b><span>Vendido hoje</span></div><div class="stat"><b>${cozinha}</b><span>Na cozinha agora</span></div><button class="stat statbtn" data-act="daysum"><b>${I('chart')}</b><span>Resumo do dia</span></button>`;
   renderStoreBar();renderHoursForm();
   const kb=$('#kt-badge');if(kb){const n=os.filter(o=>o.status==='novo').length;kb.hidden=!n;kb.textContent=n}
   const live=os.filter(o=>o.status!=='entregue'&&o.status!=='cancelado');
@@ -522,7 +524,7 @@ function renderCozinha(){
   renderExtrasAdmin();
   const ma=$('#menuAdmin'),ae=document.activeElement;if(ae&&ae.tagName==='INPUT'&&ma.contains(ae))return;
   const am=[...MENU].sort((a,b)=>(b.promo-a.promo));
-  ma.innerHTML=`<div class="mini" style="padding:4px 0 8px">🔥 ${MENU.filter(p=>p.promo&&!p.hidden).length} na promoção · 🙈 ${MENU.filter(p=>p.hidden).length} ocultos. Só aparece em Promoções o que estiver marcado "Na promoção".</div>`+am.map(p=>`<div class="mrow${p.hidden?' hid':''}"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ${p.promo?'':'ghost'}" data-act="ppromo" data-id="${p.id}">${p.promo?'🔥 Na promoção':'Pôr na promoção'}</button><button class="btn sm ghost" data-act="phide" data-id="${p.id}">${p.hidden?'🙈 Oculto':'Visível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
+  ma.innerHTML=`<div class="mini" style="padding:4px 0 8px">${I('flame')} ${MENU.filter(p=>p.promo&&!p.hidden).length} na promoção · ${I('eyeoff')} ${MENU.filter(p=>p.hidden).length} ocultos. Só aparece em Promoções o que estiver marcado "Na promoção".</div>`+am.map(p=>`<div class="mrow${p.hidden?' hid':''}"><div class="ph">${thumb(p)}</div><div><b>${esc(p.name)}</b><span class="mini">${esc(p.cat)}${(S.photos[p.id]||PHOTOS[p.id])?' · com foto':''}</span><div class="pr-ed"><span>R$</span><input inputmode="decimal" id="pr-${p.id}" value="${p.price.toFixed(2).replace('.',',')}" aria-label="Preço de ${esc(p.name)}"><button class="btn sm" data-act="price" data-id="${p.id}">Salvar preço</button></div></div><div class="a"><button class="btn sm ghost" data-act="photo" data-id="${p.id}">Foto</button><button class="btn sm ${S.settings.soldOut[p.id]?'dark':'ghost'}" data-act="sold" data-id="${p.id}">${S.settings.soldOut[p.id]?'Esgotado':'Disponível'}</button><button class="btn sm ${p.promo?'':'ghost'}" data-act="ppromo" data-id="${p.id}">${p.promo?I('flame')+' Na promoção':'Pôr na promoção'}</button><button class="btn sm ghost" data-act="phide" data-id="${p.id}">${p.hidden?I('eyeoff')+' Oculto':'Visível'}</button><button class="btn sm ghost danger" data-act="pdel" data-id="${p.id}">Remover</button></div></div>`).join('');
 }
 function syncSettings(){const m={'s-pix':S.settings.pix,'s-pixtype':S.settings.pixType,'s-pixname':S.settings.pixName,'s-pixcity':S.settings.pixCity,'s-wa':S.settings.wa,'s-fee':String(S.settings.feeDefault!=null?S.settings.feeDefault:8).replace('.',',')};for(const k in m){const e=$('#'+k);if(e&&document.activeElement!==e&&e.value!==(m[k]||''))e.value=m[k]||''}pixCheck()}
 ['s-pix','s-pixtype','s-pixname','s-pixcity','s-wa','s-fee'].forEach(id=>$('#'+id).addEventListener('change',e=>{const v=e.target.value.trim();if(id==='s-fee'){const n=parseFloat(v.replace(',','.'));S.settings.feeDefault=isFinite(n)&&n>=0?n:8}else if(id==='s-pix')S.settings.pix=v;else if(id==='s-pixtype')S.settings.pixType=v;else if(id==='s-pixname')S.settings.pixName=v||'LANCHES DO BOY';else if(id==='s-pixcity')S.settings.pixCity=v||'BELO HORIZONTE';else S.settings.wa=v;saveSettings()}));
@@ -578,11 +580,16 @@ setInterval(()=>{if(cur()==='cozinha'&&!document.hidden&&!$('#layer').children.l
 (function(){const l=$('.logo');l.textContent='';l.style.background=`url(${LOGO_SM}) center/cover`;l.style.boxShadow='none'})();
 /* ------------------------------ login (Supabase Auth) ------------------------------ */
 const BACKSVG='<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
-async function signUpNoMail(em,pw,meta){
-  try{const rs=await fetch(SB_URL+'/functions/v1/signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({email:em,password:pw,name:meta.name,phone:meta.phone,captcha:tsToken})});tsReset();
+const LDOM='lanchesdoboy.com',CDOM='cliente.'+LDOM;
+const normLogin=v=>String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
+const loginEmail=(v,staff)=>{const l=normLogin(v);return l.includes('@')?l:l+'@'+(staff?LDOM:CDOM)};
+const loginOf=e=>String(e||'').replace(/@(cliente\.)?lanchesdoboy\.com$/i,'');
+const LOGIN_RX=/^[a-z0-9._-]{3,30}$/,LOGIN_RESERVED=/^(admin|loja|motoboy\d*|root|suporte)$/;
+async function signUpNoMail(login,pw,meta){
+  try{const rs=await fetch(SB_URL+'/functions/v1/signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({login,password:pw,name:meta.name,phone:meta.phone,captcha:tsToken})});tsReset();
     const j=await rs.json().catch(()=>({}));
     if(!rs.ok)return{error:{message:j.error||'Não foi possível criar a conta.'}};
-    return sb.auth.signInWithPassword({email:em,password:pw})
+    return sb.auth.signInWithPassword({email:loginEmail(login),password:pw})
   }catch(x){return{error:{message:'Sem conexão. Verifique a internet e tente de novo.'}}}
 }
 let authMode='in';
@@ -593,7 +600,7 @@ function openLogin(next){
   <div class="tabs" style="box-shadow:none;grid-template-columns:1fr 1fr"><button type="button" data-am="in" aria-selected="${!up}">Já tenho conta</button><button type="button" data-am="up" aria-selected="${up}">Criar conta</button></div>
   ${up?`<div class="f"><label for="cl-name">Seu nome</label><input id="cl-name" autocomplete="name" value="${esc(c.name||'')}"></div>
   <div class="f"><label for="cl-phone">WhatsApp</label><input id="cl-phone" inputmode="tel" autocomplete="tel" maxlength="15" placeholder="(31) 99999-9999" value="${esc(fmtPhone(c.phone||''))}"></div>`:''}
-  <div class="f"><label for="cl-mail">E-mail</label><input id="cl-mail" type="email" inputmode="email" autocomplete="email"></div>
+  <div class="f"><label for="cl-login">Login</label><input id="cl-login" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="${up?'Crie um login, ex.: ana.souza':'Seu login'}" maxlength="40"></div>
   <div class="f"><label for="cl-pw">Senha</label><input id="cl-pw" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'Mínimo 6 caracteres':''}"><div class="err" id="cl-err" role="alert"></div></div>
   ${up&&TS_SITE?'<div id="cl-ts" class="tsbox"></div>':''}
   <button class="btn" type="submit">${up?'Criar conta e continuar':'Entrar'}</button>
@@ -602,19 +609,20 @@ function openLogin(next){
     const ph=$('#cl-phone',sh);if(ph)ph.addEventListener('input',e=>{e.target.value=fmtPhone(e.target.value)});
     $$('[data-am]',sh).forEach(b=>b.addEventListener('click',()=>{authMode=b.dataset.am;openLogin(next)}));
     $('#cl',sh).addEventListener('submit',async e=>{e.preventDefault();const err=$('#cl-err',sh),btn=$('#cl button[type=submit]',sh);
-      const em=$('#cl-mail',sh).value.trim(),pw=$('#cl-pw',sh).value;err.textContent='';
-      if(!/^\S+@\S+\.\S+$/.test(em)){err.textContent='Informe um e-mail válido.';return}
+      const lg=normLogin($('#cl-login',sh).value),pw=$('#cl-pw',sh).value;err.textContent='';
+      if(!lg.includes('@')&&!LOGIN_RX.test(lg)){err.textContent='O login deve ter de 3 a 30 letras ou números, sem espaços (pode usar ponto, hífen ou _).';return}
+      if(up&&(lg.includes('@')||LOGIN_RESERVED.test(lg))){err.textContent='Este login não pode ser usado. Escolha outro.';return}
       if(pw.length<6){err.textContent='A senha precisa ter ao menos 6 caracteres.';return}
       btn.disabled=true;let r;
       if(up){const n=$('#cl-name',sh).value.trim(),p=$('#cl-phone',sh).value.trim();
         if(n.length<2||digits(p).length<10){err.textContent='Informe seu nome e o WhatsApp com DDD.';btn.disabled=false;return}
         if(TS_SITE&&!tsToken){err.textContent='Confirme que você não é um robô.';btn.disabled=false;return}
-        r=await signUpNoMail(em,pw,{name:n,phone:p});
-        if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.';btn.disabled=false;return}}
-      else r=await sb.auth.signInWithPassword({email:em,password:pw});
-      if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':r.error.message;btn.disabled=false;return}
+        r=await signUpNoMail(lg,pw,{name:n,phone:p});
+        if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Entre com seu login e senha.';btn.disabled=false;return}}
+      else r=await sb.auth.signInWithPassword({email:loginEmail(lg),password:pw});
+      if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'Login ou senha incorretos.':r.error.message;btn.disabled=false;return}
       applyUser(r.data.user);closeSheet();toast('Olá, '+cust.name.split(' ')[0]+'!');render();if(next==='checkout')openCheckout();else if(next==='group')createGroup()});
-    const f=$('#cl-name',sh)||$('#cl-mail',sh);f.focus({preventScroll:true})});
+    const f=$('#cl-name',sh)||$('#cl-login',sh);f.focus({preventScroll:true})});
 }
 let staffMode='in',staffWho=PORTAL==='moto'?'moto':'loja',motoList=null;
 function renderLogin(){
@@ -622,19 +630,19 @@ function renderLogin(){
   const up=false;
   $('#login').innerHTML=`<div class="card" style="max-width:420px;margin:18px auto 0;display:grid;gap:14px">
    <div><b class="d" style="font-size:26px">Acesso da hamburgueria</b><div class="mini">Área exclusiva do dono e da equipe da loja.</div></div>
-   ${S.user&&!sess?`<div class="card" style="background:var(--warn-soft);border-color:transparent"><b>${esc(S.user.email)}</b><div class="mini">Este e-mail não tem acesso à hamburgueria.</div><button class="btn sm ghost" data-act="clogout" style="margin-top:8px">Sair desta conta</button></div>`:''}
+   ${S.user&&!sess?`<div class="card" style="background:var(--warn-soft);border-color:transparent"><b>${esc(loginOf(S.user.email))}</b><div class="mini">Este login não tem acesso à hamburgueria.</div><button class="btn sm ghost" data-act="clogout" style="margin-top:8px">Sair desta conta</button></div>`:''}
    <form id="lf" class="f" style="gap:12px" novalidate>
-    <div class="f"><label for="lf-m">E-mail</label><input id="lf-m" type="email" inputmode="email" autocomplete="email"></div>
+    <div class="f"><label for="lf-m">Login</label><input id="lf-m" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="admin"></div>
     <div class="f"><label for="lf-p">Senha</label><input id="lf-p" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'Mínimo 6 caracteres':''}"><div class="err" id="lf-e" role="alert"></div></div>
     <button class="btn" type="submit">Entrar</button>
    </form></div>`;
-  $('#lf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#lf-e'),btn=$('#lf button[type=submit]'),em=$('#lf-m').value.trim(),pw=$('#lf-p').value;err.textContent='';err.style.color='';
-    if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){err.textContent='Informe e-mail e senha (mínimo 6 caracteres).';return}
+  $('#lf').addEventListener('submit',async e=>{e.preventDefault();const err=$('#lf-e'),btn=$('#lf button[type=submit]'),em=loginEmail($('#lf-m').value,true),pw=$('#lf-p').value;err.textContent='';err.style.color='';
+    if(normLogin($('#lf-m').value).length<3||pw.length<6){err.textContent='Informe o login e a senha.';return}
     btn.disabled=true;let r;
     if(up){r=await signUpNoMail(em,pw,{name:em.split('@')[0],phone:''});
-      if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Confirme pelo link enviado ao e-mail e depois entre.';btn.disabled=false;return}}
+      if(!r.error&&!r.data.session){err.style.color='var(--ok)';err.textContent='Conta criada! Entre com seu login e senha.';btn.disabled=false;return}}
     else r=await sb.auth.signInWithPassword({email:em,password:pw});
-    if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'E-mail ou senha incorretos.':r.error.message;btn.disabled=false;return}
+    if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'Login ou senha incorretos.':r.error.message;btn.disabled=false;return}
     applyUser(r.data.user);
     const cl=await sb.rpc('claim_staff');
     if(!cl.data){S.user=r.data.user;setSess(null);renderLogin();btn.disabled=false;return}
@@ -656,7 +664,7 @@ async function renderMotoLogin(){
     const login=$('#mf-n').value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''),pw=$('#mf-p').value.trim();
     if(!/^motoboy\d+$/.test(login)){err.textContent='Login inválido. Use por exemplo: motoboy1';return}
     if(!/^\d{4,6}$/.test(pw)){err.textContent='Digite a senha (4 a 6 números).';return}
-    btn.disabled=true;const r=await sb.auth.signInWithPassword({email:login+'@lanchesdoboy.com',password:'boy-'+pw});
+    btn.disabled=true;const r=await sb.auth.signInWithPassword({email:login+'@'+LDOM,password:'boy-'+pw});
     if(r.error){err.textContent=r.error.message==='Invalid login credentials'?'Login ou senha incorretos.':r.error.message;btn.disabled=false;return}
     applyUser(r.data.user);await refreshRole();
     if(!isMoto()){err.textContent='Este motoboy não está ativo. Fale com a hamburgueria.';await sb.auth.signOut();btn.disabled=false;return}
@@ -715,7 +723,7 @@ function finishedHtml(os){
    <div class="mini" style="padding:0 4px">${td.length} hoje${old?` · ${old} de dias anteriores`:''}. Toque em um pedido para conferir.</div>
    <div class="fingrid">${done.slice(0,60).map(o=>`<article class="o fin-o"><button class="fin-open" data-act="odetail" data-id="${o.id}" aria-label="Ver pedido #${o.code}"><div class="h"><b>#${o.code}</b><span class="pill ${o.status==='cancelado'?'closed':''}">${o.status==='entregue'&&isPick(o)?'Retirado':STATUS[o.status]}</span></div>
      <div class="mini">${esc(o.customer.name)} · ${isPick(o)?'Retirada':esc(o.addr.bairro)} · ${hhmm(doneAt(o))}${isToday(doneAt(o))?'':' · '+new Date(doneAt(o)).toLocaleDateString('pt-BR')}</div>
-     <div class="fin-row"><b>${money(o.total)}</b><span class="mini">${o.items.reduce((a,it)=>a+it.qty,0)} itens${o.grp?' · 👥 grupo':''}</span></div></button>
+     <div class="fin-row"><b>${money(o.total)}</b><span class="mini">${o.items.reduce((a,it)=>a+it.qty,0)} itens${o.grp?' · '+I('users')+' grupo':''}</span></div></button>
      <button class="btn sm ghost danger" data-act="ohide" data-id="${o.id}">Excluir</button></article>`).join('')}</div></section>`}
 function confirmTap(b,txt){if(b.dataset.ok)return true;b.dataset.ok=1;const old=b.textContent;b.textContent=txt||'Toque de novo para confirmar';b.classList.add('confirm');setTimeout(()=>{if(b.isConnected){delete b.dataset.ok;b.textContent=old;b.classList.remove('confirm')}},4000);return false}
 async function hideOrder(b,id){if(!confirmTap(b,'Confirmar exclusão'))return;const{error}=await sb.rpc('order_hide',{oid:id});if(error){dbFail(error);return}delete S.orders[id];S.rows=S.rows.filter(r=>r.id!==id);closeSheetIfOrder(id);toast('Pedido excluído');emit()}
@@ -728,10 +736,10 @@ function openOrderDetail(id){const o=S.orders[id];if(!o)return;
   openSheet(`<div class="hd" id="odet" data-id="${o.id}"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido #${o.code}</h2><span class="pill ${o.status==='cancelado'?'closed':fin?'':'warn'}">${PK&&o.status==='entregue'?'Retirado':STATUS[o.status]}</span></div>
   <div class="bd">
    <div class="card dgrid"><div><div class="lbl">Cliente</div><b>${esc(o.customer.name)}</b><div class="mini">${esc(fmtPhone(o.customer.phone))}</div></div>
-    <div><div class="lbl">${PK?'Retirada':'Entrega'}</div>${PK?'<b>🏪 Retirada no local</b>':`<b>${esc(o.addr.street)}, ${esc(o.addr.number)}</b><div class="mini">${esc(o.addr.bairro)}${o.addr.comp?' · '+esc(o.addr.comp):''}${o.addr.cep?' · CEP '+esc(o.addr.cep):''}</div>`}</div>
+    <div><div class="lbl">${PK?'Retirada':'Entrega'}</div>${PK?'<b>'+I('store')+' Retirada no local</b>':`<b>${esc(o.addr.street)}, ${esc(o.addr.number)}</b><div class="mini">${esc(o.addr.bairro)}${o.addr.comp?' · '+esc(o.addr.comp):''}${o.addr.cep?' · CEP '+esc(o.addr.cep):''}</div>`}</div>
     <div><div class="lbl">Pagamento</div>${payBadge(o)}</div>
-    ${!PK&&o.driver!=null?`<div><div class="lbl">Motoboy</div><b>🛵 ${esc(dn[o.driver]||'Motoboy')}</b></div>`:''}</div>
-   <div><div class="lbl">Itens${ppl.length?' · 👥 pedido em grupo':''}</div>${itemsHtml(o)}</div>
+    ${!PK&&o.driver!=null?`<div><div class="lbl">Motoboy</div><b>${I('moto')} ${esc(dn[o.driver]||'Motoboy')}</b></div>`:''}</div>
+   <div><div class="lbl">Itens${ppl.length?' · '+I('users')+' pedido em grupo':''}</div>${itemsHtml(o)}</div>
    ${ppl.length>1?`<div><div class="lbl">Quanto cada um paga</div>${ppl.map(p=>`<div class="line" style="padding:8px 0"><span>${esc(p.person)}</span><b>${money(p.sub+fs)}</b></div>`).join('')}</div>`:''}
    <div class="sum"><div><span>Subtotal</span><span>${money(o.subtotal)}</span></div><div><span>${PK?'Retirada':'Taxa de entrega'}</span><span>${PK?'Grátis':money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
    <div><div class="lbl">Linha do tempo</div><ul class="tl">${tl}</ul></div>
@@ -772,7 +780,7 @@ function clearGroup(){GRP.code=null;GRP.person='';GRP.tokens={};GRP.data=null;GR
 async function refreshGroup(){if(!GRP.code)return;const{data,error}=await sb.rpc('group_get',{c:GRP.code});if(error)return;
   if(!data){toast('Este pedido em grupo não existe mais');clearGroup();return}
   const prev=GRP.data;GRP.data=data;const sig=JSON.stringify(data);const changed=sig!==GRP.sig;GRP.sig=sig;
-  if(data.status!=='aberto'&&!data.is_owner){const m=data.status==='fechado'?`${data.owner_name} enviou o pedido em grupo${data.order_code?' (#'+data.order_code+')':''}. Bom apetite! 🍔`:data.status==='cancelado'?`${data.owner_name} cancelou o pedido em grupo.`:'Este pedido em grupo expirou.';
+  if(data.status!=='aberto'&&!data.is_owner){const m=data.status==='fechado'?`${data.owner_name} enviou o pedido em grupo${data.order_code?' (#'+data.order_code+')':''}. Bom apetite!`:data.status==='cancelado'?`${data.owner_name} cancelou o pedido em grupo.`:'Este pedido em grupo expirou.';
     if(!prev||prev.status==='aberto')toast(m);clearGroup();if($('#grp'))closeSheet();return}
   if(data.status!=='aberto'&&data.is_owner&&data.status!=='fechado'){toast(data.status==='expirado'?'Seu pedido em grupo expirou.':'Pedido em grupo cancelado.');clearGroup();if($('#grp'))closeSheet();return}
   if(changed){emit();if($('#grp'))renderGroupSheet()}}
@@ -792,26 +800,26 @@ async function joinGroup(code){
   saveGrp();emit();openGroup()}
 function askGroupName(){const d=GRP.data;if(!d)return;
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div>
-  <form class="bd" id="gnF" novalidate><div class="card gcard"><div class="gicon">👥</div><div><b>${esc(d.owner_name)} te chamou para um pedido em grupo</b><div class="mini">Cada um escolhe o seu lanche e ${esc(d.owner_name.split(' ')[0])} envia tudo junto, numa entrega só.</div></div></div>
+  <form class="bd" id="gnF" novalidate><div class="card gcard"><div class="gicon">${I('users')}</div><div><b>${esc(d.owner_name)} te chamou para um pedido em grupo</b><div class="mini">Cada um escolhe o seu lanche e ${esc(d.owner_name.split(' ')[0])} envia tudo junto, numa entrega só.</div></div></div>
   <div class="f"><label for="gn">Seu nome</label><input id="gn" maxlength="30" autocomplete="given-name" value="${esc(GRP.person||(cust?cust.name:''))}" placeholder="Como os amigos te chamam"><div class="err" id="gn-e"></div></div>
   <button class="btn" type="submit">Entrar no grupo e escolher meu lanche</button></form>`,sh=>{
     const i=$('#gn',sh);i.focus();
     $('#gnF',sh).addEventListener('submit',e=>{e.preventDefault();const v=i.value.trim();if(v.length<2){$('#gn-e',sh).textContent='Informe seu nome.';return}
       GRP.person=v;saveGrp();closeSheet();emit();toast('Escolha seus lanches e toque em "Adicionar ao grupo"')})})}
 function groupDockBtn(){const d=GRP.data,n=(d.items||[]).reduce((a,it)=>a+it.qty,0);
-  return `<button class="btn grow gbtn" data-act="gopen"><span><span class="cnt">${n}</span>👥 Grupo de ${esc(d.owner_name.split(' ')[0])}</span><b>${money(grpSub(d))}</b></button>`}
+  return `<button class="btn grow gbtn" data-act="gopen"><span><span class="cnt">${n}</span>${I('users')} Grupo de ${esc(d.owner_name.split(' ')[0])}</span><b>${money(grpSub(d))}</b></button>`}
 function renderGroupBar(){const el=$('#grpBar');if(!el)return;if(!custView()){el.innerHTML='';return}
   if(groupActive()){const d=GRP.data,ppl=new Set(d.items.map(it=>it.person)).size;
-    el.innerHTML=`<div class="gbar on"><div class="gicon">👥</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
-  else el.innerHTML='';if(0)el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">👥</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
+    el.innerHTML=`<div class="gbar on"><div class="gicon">${I('users')}</div><div style="min-width:0;flex:1"><b>Você está no pedido em grupo de ${esc(d.owner_name.split(' ')[0])}</b><div class="mini">${ppl} ${ppl===1?'pessoa':'pessoas'} · ${d.items.length} ${d.items.length===1?'item':'itens'} · entrando como ${esc(GRP.person)}</div></div><button class="btn sm" data-act="gopen">Ver grupo</button></div>`}
+  else el.innerHTML='';if(0)el.innerHTML=`<button class="gbar" data-act="gcreate"><div class="gicon">${I('users')}</div><div style="min-width:0;flex:1;text-align:left"><b>Pedido em grupo</b><div class="mini">Junte a turma: cada um escolhe o seu e vem tudo numa entrega só.</div></div><span class="go">Criar<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`}
 function openGroup(){if(!GRP.data){refreshGroup().then(()=>{if(GRP.data)openGroup()});return}
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar ao cardápio">${BACKSVG}<span>Cardápio</span></button><h2>Pedido em grupo</h2></div><div class="bd" id="grp"></div>`);renderGroupSheet()}
 function renderGroupSheet(){const el=$('#grp');if(!el||!GRP.data)return;const d=GRP.data,own=!!d.is_owner;
   const by=new Map();d.items.forEach(it=>{if(!by.has(it.person))by.set(it.person,[]);by.get(it.person).push(it)});
   const people=[...by];const total=grpSub(d),exp=hhmm(Date.parse(d.expires_at));
-  el.innerHTML=`<div class="card gcard"><div class="gicon">👥</div><div style="min-width:0"><b>Grupo de ${esc(d.owner_name)}</b><div class="mini">Código ${esc(d.code)} · aberto até ${exp} · você: ${esc(GRP.person)} <button class="linkbtn" data-act="gname">trocar</button></div></div></div>
+  el.innerHTML=`<div class="card gcard"><div class="gicon">${I('users')}</div><div style="min-width:0"><b>Grupo de ${esc(d.owner_name)}</b><div class="mini">Código ${esc(d.code)} · aberto até ${exp} · você: ${esc(GRP.person)} <button class="linkbtn" data-act="gname">trocar</button></div></div></div>
    <div class="gshare"><button class="btn ok" data-act="gshare">Chamar a turma no WhatsApp</button><button class="btn ghost" data-act="gcopy">Copiar link</button></div>
-   ${people.length?people.map(([p,its])=>{const sub=its.reduce((a,it)=>a+(+it.total),0);return `<div class="gperson"><div class="gph"><b>👤 ${esc(p)}${p===GRP.person?' <span class="mini">(você)</span>':''}</b><b>${money(sub)}</b></div>
+   ${people.length?people.map(([p,its])=>{const sub=its.reduce((a,it)=>a+(+it.total),0);return `<div class="gperson"><div class="gph"><b>${I('user')} ${esc(p)}${p===GRP.person?' <span class="mini">(você)</span>':''}</b><b>${money(sub)}</b></div>
      ${its.map(it=>{const can=own||GRP.tokens[it.id];return `<div class="gitem${it.ok?'':' bad'}"><div style="min-width:0"><span>${it.qty}× ${esc(it.name)}</span>${(it.extras&&it.extras.length)||(it.removed&&it.removed.length)||it.note?`<small>${it.extras.length?'+ '+esc(it.extras.join(', '))+' ':''}${it.removed.length?'· sem '+esc(it.removed.join(', '))+' ':''}${it.note?'· “'+esc(it.note)+'”':''}</small>`:''}${it.ok?'':'<small class="err">Indisponível no momento</small>'}</div><span class="gtot">${money(+it.total)}</span>${can?`<button class="x" data-act="grm" data-item="${it.id}" aria-label="Remover ${esc(it.name)}">×</button>`:''}</div>`}).join('')}</div>`}).join(''):`<div class="empty">Ninguém escolheu ainda. Toque em "Cardápio", escolha seu lanche e use "Adicionar ao grupo".</div>`}
    <div class="sum"><div><span>${people.length} ${people.length===1?'pessoa':'pessoas'} · ${(n=>n+(n===1?' item':' itens'))(d.items.reduce((a,it)=>a+it.qty,0))}</span><span>${money(total)}</span></div><div class="mini">A taxa de entrega é calculada no envio e dividida igualmente entre todos.</div><div class="tot"><span>Subtotal</span><span>${money(total)}</span></div></div>
    <button class="btn ghost" data-act="close">+ Adicionar mais lanches</button>
@@ -822,7 +830,7 @@ async function groupAdd(btn,pid,qty,exs,rms,note){btn.disabled=true;
   GRP.tokens[data.id]=data.token;saveGrp();closeSheet();toast('Adicionado ao grupo');await refreshGroup()}
 async function groupRemove(item){const{error}=await sb.rpc('group_remove',{c:GRP.code,item,tok:GRP.tokens[item]||''});if(error){dbFail(error);return}
   delete GRP.tokens[item];saveGrp();await refreshGroup();renderGroupSheet()}
-function shareGroup(){const d=GRP.data;const msg=`🍔 Bora pedir Lanches do Boy juntos? Entra no meu pedido em grupo, escolhe o seu lanche que eu envio tudo numa entrega só:\n${groupLink()}`;
+function shareGroup(){const d=GRP.data;const msg=`Bora pedir Lanches do Boy juntos? Entra no meu pedido em grupo, escolhe o seu lanche que eu envio tudo numa entrega só:\n${groupLink()}`;
   if(navigator.share){navigator.share({title:'Pedido em grupo · Lanches do Boy',text:msg}).catch(()=>{})}else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}
 async function cancelGroup(b){if(!confirmTap(b,'Toque de novo para cancelar o grupo'))return;const{error}=await sb.rpc('group_cancel',{c:GRP.code});if(error){dbFail(error);return}clearGroup();closeSheet();toast('Pedido em grupo cancelado')}
 function leaveGroup(){clearGroup();closeSheet();toast('Você saiu do pedido em grupo')}
@@ -863,7 +871,7 @@ async function renderPixQRs(){const els=$$('.pixqr[data-code]').filter(e=>!e.dat
 function pixCheck(){const m=$('#s-pixmsg');if(!m)return;
   if(!S.settings.pix){m.className='mini';m.textContent='Cadastre a chave Pix para o app gerar o QR Code e o Copia e Cola de cada pedido.';$('#s-pixprev').innerHTML='';return}
   if(!pixValid()){m.className='mini err';m.textContent={cpf:'CPF deve ter 11 números.',cnpj:'CNPJ deve ter 14 números.',telefone:'Telefone com DDD, ex.: (31) 99999-9999.',email:'E-mail inválido.',aleatoria:'Chave aleatória tem 36 caracteres, ex.: 123e4567-e89b-12d3-a456-426614174000.'}[S.settings.pixType]||'Chave inválida.';$('#s-pixprev').innerHTML='';return}
-  m.className='mini ok-t';m.textContent='✓ Chave válida. Os clientes que escolherem Pix recebem o QR Code e o Copia e Cola com o valor exato do pedido. Teste abaixo pagando R$ 1,00.';
+  m.className='mini ok-t';m.textContent='Chave válida. Os clientes que escolherem Pix recebem o QR Code e o Copia e Cola com o valor exato do pedido. Teste abaixo pagando R$ 1,00.';
   const c=pixPayload(1,'TESTE');$('#s-pixprev').innerHTML=`<div class="pixqr" data-code="${esc(c)}"></div><button class="btn sm ghost" type="button" data-act="copy" data-t="${esc(c)}">Copiar código de teste (R$ 1,00)</button>`;renderPixQRs()}
 
 /* ------------------------------ status do pedido na tela do cliente ------------------------------ */
@@ -875,8 +883,8 @@ function statusInfo(o){const PK=isPick(o),m=etaFor(o);
   const lab={novo:'Recebido',preparo:'Em preparo',pronto:PK?'Pronto p/ retirar':'Pronto',rota:'Saiu para entrega'}[o.status]||STATUS[o.status];
   const msg={novo:'Aguardando a hamburgueria aceitar.',
     preparo:'Seu pedido está sendo preparado.'+(m?` ${PK?'Pronto':'Chega'} em ~${m} min.`:''),
-    pronto:PK?'Seu pedido está pronto! Pode vir retirar. 🏪':'Pronto! Aguardando o motoboy sair.',
-    rota:'🛵 O motoboy está a caminho'+(m?`, chega em ~${m} min`:'')+'. Toque para ver no mapa.'}[o.status]||'';
+    pronto:PK?'Seu pedido está pronto! Pode vir retirar.':'Pronto! Aguardando o motoboy sair.',
+    rota:I('moto')+' O motoboy está a caminho'+(m?`, chega em ~${m} min`:'')+'. Toque para ver no mapa.'}[o.status]||'';
   return{steps,idx:steps.indexOf(o.status),lab,msg}}
 function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).sort((a,b)=>b.createdAt-a.createdAt).slice(0,3);
@@ -888,7 +896,7 @@ function renderOrderStatus(){const el=$('#ordStatus');if(!el)return;
 let lastSt=null;
 function notifyCustomer(){if(!custView())return;const mine=myOrders(),now={};mine.forEach(o=>now[o.id]=o.status);
   if(lastSt){mine.forEach(o=>{const p=lastSt[o.id];if(!p||p===o.status)return;const PK=isPick(o);
-    const m={preparo:'Seu pedido #'+o.code+' está sendo preparado 🍔',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar 🏪':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega 🛵',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite! 😋',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
+    const m={preparo:'Seu pedido #'+o.code+' está sendo preparado',pronto:PK?'Pedido #'+o.code+' pronto! Pode vir retirar':'Pedido #'+o.code+' pronto, o motoboy já vai sair',rota:'Pedido #'+o.code+' saiu para entrega',entregue:PK?'Pedido #'+o.code+' retirado. Bom apetite!':'Pedido #'+o.code+' entregue. Bom apetite!',cancelado:'Pedido #'+o.code+' foi cancelado pela loja'}[o.status];
     if(m){toast(m);try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}})}
   lastSt=now}
 setInterval(()=>{if(custView()&&cur()==='cliente'&&$('#ordStatus')&&$('#ordStatus').children.length){if(myOrders().some(o=>o.status==='rota'))loadLoc();renderOrderStatus()}},15000);
@@ -928,26 +936,26 @@ function renderTabbar(v){const tb=$('#tabbar');if(!tb)return;const show=v==='cli
   const lb=$('#tb-acc-l');if(lb)lb.textContent=cust?cust.name.split(' ')[0]:'Entrar';setTb(tbOn)}
 function openGroupIntro(){setTb('group');
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Pedido em grupo</h2></div>
-  <div class="bd"><div class="card gcard"><div class="gicon">👥</div><div><b>Junte a turma num pedido só</b><div class="mini">Ideal para o escritório, a faculdade ou a família.</div></div></div>
+  <div class="bd"><div class="card gcard"><div class="gicon">${I('users')}</div><div><b>Junte a turma num pedido só</b><div class="mini">Ideal para o escritório, a faculdade ou a família.</div></div></div>
   <ol class="howto"><li><b>Crie o grupo</b> e mande o link no WhatsApp.</li><li><b>Cada um escolhe</b> o próprio lanche, só com o nome, sem cadastro.</li><li><b>Você envia tudo junto</b>: uma entrega, uma taxa dividida, e o app mostra quanto cada um paga.</li></ol>
   <button class="btn" data-act="gcreate">Criar pedido em grupo</button>
-  <button class="btn ghost" data-act="shareapp">📤 Compartilhar o cardápio</button></div>`)}
+  <button class="btn ghost" data-act="shareapp">${I('share')} Compartilhar o cardápio</button></div>`)}
 function openAccount(){if(!cust){openLogin();setTb('account');return}setTb('account');
   const act=myOrders().filter(o=>!['entregue','cancelado'].includes(o.status)).length,tot=myOrders().length;
   openSheet(`<div class="hd"><button class="back" data-act="close" aria-label="Voltar">${BACKSVG}<span>Voltar</span></button><h2>Minha conta</h2></div>
-  <div class="bd"><div class="card acc"><div class="acc-av">${esc(cust.name.trim().charAt(0).toUpperCase())}</div><div style="min-width:0"><b>${esc(cust.name)}</b><div class="mini">${esc(fmtPhone(cust.phone||''))}${S.user&&S.user.email?' · '+esc(S.user.email):''}</div></div></div>
-   <button class="btn ghost acc-row" data-tb-go="orders"><span>📦 Meus pedidos</span><span class="mini">${act?act+' em andamento · ':''}${tot} no total</span></button>
-   <button class="btn ghost acc-row" data-tb-go="group"><span>👥 Pedido em grupo</span><span class="mini">${groupActive()?'Grupo aberto':'Criar'}</span></button>
-   <button class="btn ghost acc-row" data-act="where"><span>📍 Endereço da loja</span><span class="mini">Como chegar</span></button>
+  <div class="bd"><div class="card acc"><div class="acc-av">${esc(cust.name.trim().charAt(0).toUpperCase())}</div><div style="min-width:0"><b>${esc(cust.name)}</b><div class="mini">${esc(fmtPhone(cust.phone||''))}${S.user&&S.user.email?' · login: '+esc(loginOf(S.user.email)):''}</div></div></div>
+   <button class="btn ghost acc-row" data-tb-go="orders"><span>${I('bag')} Meus pedidos</span><span class="mini">${act?act+' em andamento · ':''}${tot} no total</span></button>
+   <button class="btn ghost acc-row" data-tb-go="group"><span>${I('users')} Pedido em grupo</span><span class="mini">${groupActive()?'Grupo aberto':'Criar'}</span></button>
+   <button class="btn ghost acc-row" data-act="where"><span>${I('pin')} Endereço da loja</span><span class="mini">Como chegar</span></button>
    <button class="btn ghost danger" data-act="clogout">Sair da conta</button>
-   <a class="btn ghost acc-row" href="/privacidade.html" target="_blank" rel="noopener"><span>🔒 Privacidade e meus dados</span><span class="mini">Ler</span></a>
+   <a class="btn ghost acc-row" href="/privacidade.html" target="_blank" rel="noopener"><span>${I('lock')} Privacidade e meus dados</span><span class="mini">Ler</span></a>
    <button class="btn ghost danger" data-act="accdel" style="font-size:13.5px">Excluir minha conta</button></div>`,sh=>{$$('[data-tb-go]',sh).forEach(b=>b.addEventListener('click',()=>tbGo(b.dataset.tbGo)))})}
 function tbGo(k){
   if(k==='home'){closeSheet();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});return}
   if(k==='orders'){openTrack();setTb('orders');return}
   if(k==='group'){if(groupActive()){openGroup();setTb('group')}else openGroupIntro();return}
   if(k==='account')openAccount()}
-document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb);if(e.target.closest('[data-act=shareapp]')){const url=location.origin+'/',msg='🍔 Peça no Lanches do Boy: '+url;if(navigator.share)navigator.share({title:'Lanches do Boy',text:msg,url}).catch(()=>{});else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}});
+document.addEventListener('click',e=>{const b=e.target.closest('#tabbar [data-tb]');if(b)tbGo(b.dataset.tb);if(e.target.closest('[data-act=shareapp]')){const url=location.origin+'/',msg='Peça no Lanches do Boy: '+url;if(navigator.share)navigator.share({title:'Lanches do Boy',text:msg,url}).catch(()=>{});else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener')}});
 /* categorias fixas no topo e marcação da seção atual */
 (function(){const root=document.documentElement,top=$('#chrome');let tk=false;
   function sync(){const chips=$('#chips');if(!chips||$('#v-cliente').hidden)return;
@@ -990,12 +998,12 @@ async function testPush(btn){btn.disabled=true;try{const{data:{session}}=await s
   const j=await r.json().catch(()=>({}));toast(r.ok&&j.sent?'Notificação de teste enviada. Ela chega em alguns segundos.':(j.error||'Não foi possível enviar o teste'))}catch(e){toast('Sem conexão para enviar o teste')}btn.disabled=false;chime()}
 function renderAlertBar(){const el=$('#alertBar');if(!el)return;if(!isLoja()){el.innerHTML='';return}
   const st=pushState;let h;
-  if(st==='on')h=`<div class="geo on"><span class="geo-dot"></span><div style="flex:1"><b>🔔 Alertas ligados neste celular</b><div class="mini">Pedido novo apita e chega notificação, mesmo com o app fechado.</div></div><button class="btn sm ghost" data-act="ptest">Testar</button></div>`;
-  else if(st==='ios')h=`<div class="geo off"><div><b>🔔 Receber pedidos com o iPhone bloqueado</b><div class="mini">1. Toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b>.<br>2. Abra a hamburgueria pelo ícone novo e toque em <b>Ativar alertas</b>.<br>Enquanto isso, com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
-  else if(st==='denied')h=`<div class="geo off"><div><b>🔕 Notificações bloqueadas</b><div class="mini">Libere nas configurações do celular: Ajustes → Notificações → ${isIOS()?'Boy Loja':'Chrome / navegador'} → Permitir. Depois recarregue esta página.</div></div></div>`;
-  else if(st==='nosupport')h=`<div class="geo off"><div><b>🔔 Alertas</b><div class="mini">Este navegador não recebe notificações. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
-  else if(st==='err')h=`<div class="geo off"><div style="flex:1"><b>🔔 Não foi possível ligar os alertas agora</b><div class="mini">Verifique a internet e tente de novo. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="pon">Tentar de novo</button></div>`;
-  else h=`<div class="geo wait"><div style="flex:1"><b>🔔 Ative os alertas de pedido</b><div class="mini">O celular apita e mostra a notificação a cada pedido novo, mesmo com o app fechado.</div></div><button class="btn sm" data-act="pon">Ativar alertas</button></div>`;
+  if(st==='on')h=`<div class="geo on"><span class="geo-dot"></span><div style="flex:1"><b>${I('bell')} Alertas ligados neste celular</b><div class="mini">Pedido novo apita e chega notificação, mesmo com o app fechado.</div></div><button class="btn sm ghost" data-act="ptest">Testar</button></div>`;
+  else if(st==='ios')h=`<div class="geo off"><div><b>${I('bell')} Receber pedidos com o iPhone bloqueado</b><div class="mini">1. Toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b>.<br>2. Abra a hamburgueria pelo ícone novo e toque em <b>Ativar alertas</b>.<br>Enquanto isso, com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
+  else if(st==='denied')h=`<div class="geo off"><div><b>${I('belloff')} Notificações bloqueadas</b><div class="mini">Libere nas configurações do celular: Ajustes → Notificações → ${isIOS()?'Boy Loja':'Chrome / navegador'} → Permitir. Depois recarregue esta página.</div></div></div>`;
+  else if(st==='nosupport')h=`<div class="geo off"><div><b>${I('bell')} Alertas</b><div class="mini">Este navegador não recebe notificações. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
+  else if(st==='err')h=`<div class="geo off"><div style="flex:1"><b>${I('bell')} Não foi possível ligar os alertas agora</b><div class="mini">Verifique a internet e tente de novo. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="pon">Tentar de novo</button></div>`;
+  else h=`<div class="geo wait"><div style="flex:1"><b>${I('bell')} Ative os alertas de pedido</b><div class="mini">O celular apita e mostra a notificação a cada pedido novo, mesmo com o app fechado.</div></div><button class="btn sm" data-act="pon">Ativar alertas</button></div>`;
   el.innerHTML=h}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act=pon],[data-act=ptest],[data-act=psound]');if(!b)return;const a=b.dataset.act;
   if(a==='pon')enablePush(b);else if(a==='ptest')testPush(b);else{unlockAudio();chime();toast('Assim o celular vai apitar a cada pedido novo')}});
@@ -1104,7 +1112,7 @@ function posCartRender(){const el=$('#pos-cart');if(!el)return;
     <div class="f"><label for="pos-name">Nome do cliente</label><input id="pos-name" maxlength="60" placeholder="Opcional"></div>
     <div class="f"><label for="pos-phone">Telefone</label><input id="pos-phone" inputmode="tel" maxlength="15" placeholder="Opcional"></div>
    </div>
-   <div class="segs" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="pos-mode" value="balcao" checked><span>🧾 Balcão</span></label><label><input type="radio" name="pos-mode" value="entrega"><span>🛵 Entrega</span></label></div>
+   <div class="segs" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="pos-mode" value="balcao" checked><span>${I('receipt')} Balcão</span></label><label><input type="radio" name="pos-mode" value="entrega"><span>${I('moto')} Entrega</span></label></div>
    <div id="pos-addr" class="g2" hidden><div class="f w"><label for="pos-street">Rua</label><input id="pos-street"></div><div class="f"><label for="pos-num">Número</label><input id="pos-num"></div><div class="f"><label for="pos-bairro">Bairro</label><input id="pos-bairro" list="pos-bairros"><datalist id="pos-bairros">${BAIRROS.map(b=>`<option value="${esc(b.n)}">`).join('')}</datalist></div><div class="f w"><label for="pos-comp">Complemento</label><input id="pos-comp" placeholder="Opcional"></div></div>
    <div class="segs" role="radiogroup" aria-label="Pagamento"><label><input type="radio" name="pos-pay" value="dinheiro" checked><span>Dinheiro</span></label><label><input type="radio" name="pos-pay" value="pix"><span>Pix</span></label><label><input type="radio" name="pos-pay" value="cartao"><span>Cartão</span></label></div>
    <label class="opt"><span>Já está pago</span><input type="checkbox" id="pos-paid"></label>
@@ -1139,8 +1147,8 @@ function openDaySummary(off){off=off||0;const d0=new Date();d0.setHours(0,0,0,0)
   <div class="bd">
    <div class="segs"><label><input type="radio" name="ds" value="0" ${off?'':'checked'}><span>Hoje</span></label><label><input type="radio" name="ds" value="1" ${off?'checked':''}><span>Ontem</span></label></div>
    <div class="sumgrid"><div class="stat"><b>${money(tot)}</b><span>Vendido</span></div><div class="stat"><b>${ok.length}</b><span>Pedidos</span></div><div class="stat"><b>${ok.length?money(tot/ok.length):'–'}</b><span>Ticket médio</span></div></div>
-   <div><div class="lbl">Recebido por forma de pagamento</div>${row('💠 Pix',money(byPay.pix))}${row('💵 Dinheiro',money(byPay.dinheiro))}${row('💳 Cartão',money(byPay.cartao))}</div>
-   <div><div class="lbl">Pedidos por tipo</div>${row('🛵 Entrega',byMode.entrega)}${row('🏪 Retirada',byMode.retirada)}${row('🧾 Balcão',byMode.balcao)}${row('Taxas de entrega',money(fees))}${canc?row('Cancelados',canc):''}</div>
+   <div><div class="lbl">Recebido por forma de pagamento</div>${row(I('pix')+' Pix',money(byPay.pix))}${row(I('cash')+' Dinheiro',money(byPay.dinheiro))}${row(I('card')+' Cartão',money(byPay.cartao))}</div>
+   <div><div class="lbl">Pedidos por tipo</div>${row(I('moto')+' Entrega',byMode.entrega)}${row(I('store')+' Retirada',byMode.retirada)}${row(I('receipt')+' Balcão',byMode.balcao)}${row('Taxas de entrega',money(fees))}${canc?row('Cancelados',canc):''}</div>
    ${top.length?`<div><div class="lbl">Mais vendidos</div>${top.map(([n,q],i)=>row((i+1)+'. '+esc(n),q+' un.')).join('')}</div>`:''}
    <p class="mini" style="margin:0">Pedidos excluídos da lista de finalizados não entram no resumo.</p>
   </div>`,sh=>{$$('[name=ds]',sh).forEach(r=>r.addEventListener('change',()=>openDaySummary(+r.value)))})}
@@ -1164,7 +1172,7 @@ async function loadLoc(){if(!S.user)return;try{const{data}=await sb.from('driver
 let leafP=null;function loadLeaflet(){if(window.L)return Promise.resolve();return leafP||(leafP=new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href='vendor/leaflet.css';document.head.appendChild(l);const sc=document.createElement('script');sc.src='vendor/leaflet.js';sc.onload=res;sc.onerror=()=>{leafP=null;rej()};document.head.appendChild(sc)}))}
 const ACTIVE=['novo','preparo','pronto','rota'];
 function trackExtra(o){if(!ACTIVE.includes(o.status))return'';
-  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${isPick(o)?`<div class="mini">🏪 Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
+  return `<div class="trkbox"><div class="trkhead"><b id="eta-${o.id}">Calculando…</b><span class="mini" id="eta2-${o.id}"></span></div>${isPick(o)?`<div class="mini">${I('store')} Retire em ${esc(STORE.addr.replace(', Brasil',''))}</div>`:o.dlat!=null?`<div class="trkmap" id="map-${o.id}"></div>`:'<div class="mini">Mapa indisponível: não conseguimos localizar este endereço no mapa.</div>'}<div class="mini" id="trkst-${o.id}"></div></div>`}
 function renderTrack(){const real=$('#trk');if(!real)return;const tmp=document.createElement('div');TRK_T=tmp;try{renderTrackBase()}finally{TRK_T=null}
   if(real.dataset.sig!==tmp.innerHTML){Object.keys(maps).forEach(k=>{try{maps[k].map.remove()}catch(e){}delete maps[k]});real.innerHTML=tmp.innerHTML;real.dataset.sig=tmp.innerHTML}
   drawMaps();renderPixQRs()}
@@ -1175,7 +1183,7 @@ async function drawMaps(){const els=$$('.trkmap');if(!els.length){updateTrackLiv
     const map=L.map(el,{attributionControl:true}).setView([o.dlat,o.dlng],14);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
     const ic=(e,c)=>L.divIcon({className:'',html:`<div class="mk" style="background:${c}">${e}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
-    L.marker([storePos.lat,storePos.lng],{icon:ic('🍔','#C8221A')}).addTo(map);L.marker([o.dlat,o.dlng],{icon:ic('🏠','#177A42')}).addTo(map);
+    L.marker([storePos.lat,storePos.lng],{icon:ic(I('burger'),'#C8221A')}).addTo(map);L.marker([o.dlat,o.dlng],{icon:ic(I('home'),'#177A42')}).addTo(map);
     map.fitBounds([[storePos.lat,storePos.lng],[o.dlat,o.dlng]],{padding:[34,34],maxZoom:16});
     maps[id]={map,el,drv:null,ic};setTimeout(()=>map.invalidateSize(),200)});
   updateTrackLive()}
@@ -1185,15 +1193,15 @@ function updateTrackLive(){
     const loc=o.drvId&&S.loc[o.drvId],dest=o.dlat!=null?{lat:o.dlat,lng:o.dlng}:null;let mins=null,st='';
     if(o.status==='rota'&&loc&&dest){const d=kmBetween(loc,dest);mins=3+d*1.35/22*60;const age=Math.round((Date.now()-loc.t)/1000);st=`O motoboy está a ${d<1?Math.round(d*1000)+' m':d.toFixed(1).replace('.',',')+' km'} de você · atualizado ${age<60?'agora':'há '+Math.round(age/60)+' min'}.`;if(age>180)st+=' (sinal do motoboy fraco no momento)'}
     else if(o.eta){mins=Math.max(5,o.eta-(Date.now()-o.createdAt)/60000)}
-    if(!st&&isPick(o))st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Seu pedido está pronto! Pode vir retirar. 🏪'}[o.status]||'';
+    if(!st&&isPick(o))st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado.',pronto:'Seu pedido está pronto! Pode vir retirar.'}[o.status]||'';
     if(isPick(o)&&o.status==='pronto')mins=null;
-    if(!st)st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado. 🍔',pronto:'Pedido pronto, aguardando o motoboy sair.',rota:'O motoboy saiu para entrega. Localização em instantes.'}[o.status]||'';
+    if(!st)st={novo:'Aguardando a hamburgueria aceitar o pedido.',preparo:'Seu pedido está sendo preparado.',pronto:'Pedido pronto, aguardando o motoboy sair.',rota:'O motoboy saiu para entrega. Localização em instantes.'}[o.status]||'';
     const m=mins==null?null:Math.max(3,Math.round(mins));
     e1.textContent=isPick(o)&&o.status==='pronto'?'Pronto para retirar':m==null?'Previsão indisponível':(o.status==='rota'?'Chega em ~':isPick(o)?'Pronto em ~':'Previsão: ~')+m+' min';
     const e2=document.getElementById('eta2-'+o.id);if(e2)e2.textContent=m==null?'':'por volta de '+hhmm(Date.now()+m*60000);
     const e3=document.getElementById('trkst-'+o.id);if(e3)e3.textContent=st;
     const mp=maps[o.id];if(mp&&mp.map){
-      if(o.status==='rota'&&loc){if(!mp.drv){mp.drv=L.marker([loc.lat,loc.lng],{icon:mp.ic('🛵','#2457B8'),zIndexOffset:900}).addTo(mp.map);if(dest)mp.map.fitBounds([[loc.lat,loc.lng],[dest.lat,dest.lng],[storePos.lat,storePos.lng]],{padding:[34,34],maxZoom:16})}else mp.drv.setLatLng([loc.lat,loc.lng])}
+      if(o.status==='rota'&&loc){if(!mp.drv){mp.drv=L.marker([loc.lat,loc.lng],{icon:mp.ic(I('moto'),'#2457B8'),zIndexOffset:900}).addTo(mp.map);if(dest)mp.map.fitBounds([[loc.lat,loc.lng],[dest.lat,dest.lng],[storePos.lat,storePos.lng]],{padding:[34,34],maxZoom:16})}else mp.drv.setLatLng([loc.lat,loc.lng])}
       else if(mp.drv){mp.map.removeLayer(mp.drv);mp.drv=null}}})}
 setInterval(()=>{if(trackOpen&&S.user)loadLoc()},8000);setInterval(()=>{updateTrackLive()},30000);setInterval(loadEta,60000);
 let watchId=null,lastSent=0;
@@ -1214,7 +1222,7 @@ function syncGeo(){const need=myRota();if(need&&watchId==null&&geoState!=='err')
 function geoBanner(){if(!myRota())return '';
   if(geoState==='on')return `<div class="geo on"><span class="geo-dot"></span><div><b>Localização ligada</b><div class="mini">O cliente está vendo você no mapa. Mantenha esta tela aberta durante a entrega.</div></div></div>`;
   if(geoState==='wait')return `<div class="geo wait"><span class="geo-dot"></span><div><b>Ligando a localização…</b><div class="mini">Se o celular perguntar, toque em <b>Permitir</b>.</div></div></div>`;
-  return `<div class="geo off"><div><b>📍 Localização desligada</b><div class="mini">${geoErr==='denied'?'O celular bloqueou a localização. No iPhone: Ajustes → Privacidade → Serviços de Localização → Safari → "Ao Usar o App". Depois toque abaixo.':'Ligue a localização para o cliente acompanhar você no mapa.'}</div></div><button class="btn sm" data-act="geoon">Ligar localização</button></div>`}
+  return `<div class="geo off"><div><b>${I('pin')} Localização desligada</b><div class="mini">${geoErr==='denied'?'O celular bloqueou a localização. No iPhone: Ajustes → Privacidade → Serviços de Localização → Safari → "Ao Usar o App". Depois toque abaixo.':'Ligue a localização para o cliente acompanhar você no mapa.'}</div></div><button class="btn sm" data-act="geoon">Ligar localização</button></div>`}
 
 window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.style.background='url('+LOGO_SM+') center/cover'}const ha=$('#heroArt');if(ha)ha.innerHTML='';emit()};
 {const ml=document.createElement('link');ml.rel='manifest';ml.href=PORTAL==='loja'?'/manifest-loja.webmanifest':PORTAL==='moto'?'/manifest-moto.webmanifest':'/manifest.webmanifest';document.head.appendChild(ml)}
