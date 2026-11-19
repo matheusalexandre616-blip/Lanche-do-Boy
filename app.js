@@ -1275,7 +1275,8 @@ ${!PK?`<div><b>End.:</b> ${esc(o.addr.street)}, ${esc(o.addr.number)}</div><div>
 <div class="row tot"><span>TOTAL</span><span>${money(o.total)}</span></div><div class="box">${pay}</div>
 <hr><div class="c">Impresso às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`}
 let lastPrint=0;
-function printOrder(o){if(Date.now()-lastPrint<1200)return;lastPrint=Date.now();try{const W=LS.get('lb_paper','80');
+function printOrder(o){if(Date.now()-lastPrint<1200)return;lastPrint=Date.now();if(BT.ch){btPrint(o).catch(e=>{console.warn(e);toast('Falha na impressora Bluetooth. Abrindo a impressão comum.');sysPrint(o)});return}sysPrint(o)}
+function sysPrint(o){try{const W=LS.get('lb_paper','80');
   let st=document.getElementById('printCss');if(!st){st=document.createElement('style');st.id='printCss';document.head.appendChild(st)}
   st.textContent=`#printArea{display:none}
 @media print{@page{size:${W}mm auto;margin:3mm}html,body{background:#fff!important;padding:0!important;margin:0!important}
@@ -1290,12 +1291,60 @@ body.printing>*:not(#printArea){display:none!important}body.printing::before{dis
   a.innerHTML=receiptHTML(o);document.body.classList.add('printing');
   const done=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
   setTimeout(()=>{try{window.print()}catch(e){toast('Não foi possível abrir a impressão')}},60)}catch(e){console.warn(e);toast('Não foi possível abrir a impressão')}}
-function renderPrintBox(){const el=$('#printBox');if(!el||el.dataset.ready)return;el.dataset.ready=1;const W=LS.get('lb_paper','80');
-  el.innerHTML=`<label class="opt"><span><b>Imprimir o cupom ao aceitar o pedido</b><small class="mini" style="display:block">Vale também para pedido de balcão. Fica salvo neste aparelho.</small></span><input type="checkbox" id="pr-auto" ${LS.get('lb_autoprint',false)?'checked':''}></label>
+function renderPrintBox(){const el=$('#printBox');if(!el)return;if(el.dataset.ready&&el.dataset.bt===BT.state)return;el.dataset.ready=1;el.dataset.bt=BT.state;const W=LS.get('lb_paper','80');
+  const sup=!!(navigator.bluetooth&&navigator.bluetooth.requestDevice),nm=LS.get('lb_btname','');
+  const bt=!sup?`<div class="geo off"><div><b>${I('printer')} Impressora Bluetooth</b><div class="mini">${isIOS()?'O iPhone não permite que sites conectem impressoras Bluetooth. Use um celular Android (Chrome) ou um computador com Chrome. No iPhone, a impressão abre pela janela comum (AirPrint).':'Este navegador não conecta impressoras Bluetooth. Abra o app pelo Google Chrome (Android ou computador).'}</div></div></div>`
+   :BT.state==='on'?`<div class="geo on"><div class="geo-dot"></div><div><b>Impressora conectada: ${esc(BT.name||nm)}</b><div class="mini">Os cupons saem direto nela, sem abrir janela.</div></div><button class="btn sm ghost" data-act="bttest">Testar</button><button class="btn sm ghost" data-act="btoff">Desconectar</button></div>`
+   :BT.state==='wait'?`<div class="geo wait"><div class="geo-dot"></div><div><b>Conectando à impressora…</b><div class="mini">Deixe a impressora ligada e perto do aparelho.</div></div></div>`
+   :`<div class="geo wait"><div><b>${I('printer')} Impressora Bluetooth</b><div class="mini">${nm?'Última impressora: <b>'+esc(nm)+'</b>. Toque em Conectar sempre que abrir o app.':'Ligue a impressora térmica e toque em Conectar. Escolha a impressora na lista.'}</div></div><button class="btn sm" data-act="bton">${nm?'Reconectar':'Conectar'}</button></div>`;
+  el.innerHTML=bt+`<label class="opt"><span><b>Imprimir o cupom ao aceitar o pedido</b><small class="mini" style="display:block">Vale também para pedido de balcão. Fica salvo neste aparelho.</small></span><input type="checkbox" id="pr-auto" ${LS.get('lb_autoprint',false)?'checked':''}></label>
   <div class="f"><label for="pr-paper">Largura do papel</label><select id="pr-paper"><option value="80" ${W==='80'?'selected':''}>80 mm (impressora térmica padrão)</option><option value="58" ${W==='58'?'selected':''}>58 mm (impressora pequena / Bluetooth)</option></select></div>
-  <div class="mini">A impressora precisa estar instalada no computador ou celular da loja. Ao tocar em Imprimir, escolha a impressora na janela que abrir.</div>`;
-  $('#pr-auto').addEventListener('change',e=>{LS.set('lb_autoprint',e.target.checked);e.target.closest('.opt').classList.toggle('on',e.target.checked);toast(e.target.checked?'O cupom vai abrir para impressão ao aceitar cada pedido':'Impressão automática desligada')});
+  <div class="mini">Sem impressora Bluetooth conectada, o botão Imprimir abre a janela de impressão comum do aparelho.</div>`;
+  $('#pr-auto').addEventListener('change',e=>{LS.set('lb_autoprint',e.target.checked);e.target.closest('.opt').classList.toggle('on',e.target.checked);toast(e.target.checked?'O cupom vai imprimir ao aceitar cada pedido':'Impressão automática desligada')});
   $('#pr-auto').closest('.opt').classList.toggle('on',$('#pr-auto').checked);
   $('#pr-paper').addEventListener('change',e=>{LS.set('lb_paper',e.target.value);toast('Papel de '+e.target.value+' mm')})}
+/* ---------- impressora térmica Bluetooth (ESC/POS via Web Bluetooth) ---------- */
+const BT={dev:null,ch:null,name:'',state:'off'};
+const BT_SVC=['000018f0-0000-1000-8000-00805f9b34fb','e7810a71-73ae-499d-8c15-faa9aef0c3f2','49535343-fe7d-4ae5-8fa9-9fafd205e455','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000ae30-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb'];
+function btSet(st){BT.state=st;renderPrintBox()}
+async function btFindChar(server){const svcs=await server.getPrimaryServices();
+  for(const sv of svcs){try{for(const c of await sv.getCharacteristics()){if(c.properties.writeWithoutResponse||c.properties.write)return c}}catch(e){}}
+  throw new Error('Esta impressora não aceitou a conexão. Verifique se ela é compatível com Bluetooth (BLE).')}
+async function btConnect(dev){btSet('wait');try{const server=await dev.gatt.connect();BT.ch=await btFindChar(server);BT.dev=dev;BT.name=dev.name||'Impressora';LS.set('lb_btname',BT.name);
+    dev.addEventListener('gattserverdisconnected',()=>{BT.ch=null;btSet('off');toast('Impressora Bluetooth desconectada')},{once:true});btSet('on');toast('Impressora conectada: '+BT.name)}
+  catch(e){BT.ch=null;btSet('off');toast(e.message&&e.message.length<140?e.message:'Não foi possível conectar à impressora');console.warn(e)}}
+async function btPick(){try{const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BT_SVC});await btConnect(dev)}
+  catch(e){if(e&&e.name!=='NotFoundError')toast('Não foi possível abrir a lista de impressoras');btSet(BT.ch?'on':'off')}}
+async function btAuto(){try{if(!navigator.bluetooth||!navigator.bluetooth.getDevices||BT.ch)return;const nm=LS.get('lb_btname','');if(!nm)return;
+  const devs=await navigator.bluetooth.getDevices();const d=devs.find(x=>x.name===nm)||devs[0];if(d)await btConnect(d)}catch(e){}}
+const ascii=t=>String(t==null?'':t).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7E]/g,'');
+function escpos(o){const C=LS.get('lb_paper','80')==='58'?32:48,PK=isPick(o),dn=S.settings.drivers,out=[];
+  const E=(...b)=>out.push(...b),T=t=>{for(const ch of ascii(t))out.push(ch.charCodeAt(0))},L=t=>{T(t);E(10)};
+  const wrap=(t,w,ind='')=>{const words=ascii(t).split(' ');const lines=[];let cur='';words.forEach(wd=>{if((cur+' '+wd).trim().length>w){if(cur)lines.push(cur);cur=ind+wd}else cur=(cur?cur+' ':'')+wd});if(cur)lines.push(cur);return lines};
+  const two=(a,b,w=C)=>{a=ascii(a);b=ascii(b);const sp=w-a.length-b.length;if(sp>=1)return [a+' '.repeat(sp)+b];return wrap(a,w).concat([' '.repeat(Math.max(0,w-b.length))+b])};
+  const hr=()=>L('-'.repeat(C)),bold=v=>E(27,69,v?1:0),size=v=>E(29,33,v),center=v=>E(27,97,v?1:0);
+  E(27,64);center(1);bold(1);L(($('.brandmark b')||{}).textContent||'');bold(0);
+  L(new Date(o.createdAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}));hr();
+  size(17);bold(1);L('PEDIDO #'+o.code);size(0);L((o.mode==='balcao'?'BALCAO':PK?'RETIRADA NO LOCAL':'ENTREGA')+(o.grp?' - GRUPO':''));bold(0);center(0);hr();
+  wrap('Cliente: '+o.customer.name,C).forEach(L);if(o.customer.phone)L('Fone: '+fmtPhone(o.customer.phone));
+  if(!PK){wrap('End.: '+o.addr.street+', '+o.addr.number,C).forEach(L);wrap('Bairro: '+o.addr.bairro,C).forEach(L);if(o.addr.comp)wrap('Compl.: '+o.addr.comp,C).forEach(L);if(o.driver!=null&&dn[o.driver])L('Motoboy: '+dn[o.driver])}
+  hr();let lastP=null;
+  o.items.forEach(it=>{if(it.person&&it.person!==lastP){lastP=it.person;bold(1);L('> '+it.person.toUpperCase());bold(0)}
+    bold(1);size(1);wrap(it.qty+'x '+it.name,Math.floor(C)).forEach(L);size(0);bold(0);
+    (it.extras||[]).forEach(x=>wrap('  + '+x,C,'    ').forEach(L));bold(1);(it.removed||[]).forEach(x=>wrap('  SEM '+x,C,'    ').forEach(L));
+    if(it.note)wrap('  OBS: '+it.note,C,'    ').forEach(L);bold(0);two('',money(it.unit*it.qty)).forEach(L)});
+  hr();two('Subtotal',money(o.subtotal)).forEach(L);two(PK?'Retirada':'Taxa de entrega',PK?'GRATIS':money(o.fee)).forEach(L);
+  bold(1);size(1);two('TOTAL',money(o.total),C).forEach(L);size(0);
+  const pay=o.pay.method==='pix'?(o.pixPaid?'PIX - PAGO':'PIX - CONFIRMAR PAGAMENTO'):o.pay.method==='dinheiro'?'DINHEIRO NA '+(PK?'RETIRADA':'ENTREGA')+(o.pay.change?' - TROCO P/ '+money(o.pay.change)+' (devolver '+money(Math.max(0,o.pay.change-o.total))+')':''):'CARTAO NA '+(PK?'RETIRADA':'ENTREGA');
+  wrap(pay,C).forEach(L);bold(0);hr();center(1);L('Impresso as '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));center(0);
+  E(10,10,10,10);E(29,86,66,0);return new Uint8Array(out)}
+async function btWrite(data){const ch=BT.ch,n=100;for(let i=0;i<data.length;i+=n){const part=data.slice(i,i+n);
+  if(ch.properties.writeWithoutResponse&&ch.writeValueWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);await new Promise(r=>setTimeout(r,20))}}
+async function btPrint(o){await btWrite(escpos(o));toast('Cupom do pedido #'+o.code+' enviado para a impressora')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act=bton],[data-act=btoff],[data-act=bttest]');if(!b)return;const a=b.dataset.act;
+  if(a==='bton')btPick();else if(a==='btoff'){try{BT.dev&&BT.dev.gatt.disconnect()}catch(x){}BT.ch=null;btSet('off')}
+  else{const t={code:'TESTE',createdAt:Date.now(),mode:'retirada',customer:{name:'Teste de impressao',phone:''},addr:{},items:[{name:'X-Tudo',qty:1,unit:20,extras:['Bacon'],removed:['cebola'],note:'Teste'}],subtotal:20,fee:0,total:20,pay:{method:'pix'},pixPaid:true,history:[]};
+    btPrint(t).catch(x=>{console.warn(x);toast('A impressora não respondeu')})}});
+setTimeout(btAuto,1500);
 setInterval(renderPrintBox,1000);setTimeout(renderPrintBox,300);
 })();
