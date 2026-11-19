@@ -1024,7 +1024,7 @@ async function testPush(btn){btn.disabled=true;try{const{data:{session}}=await s
   const j=await r.json().catch(()=>({}));toast(r.ok&&j.sent?'Notificação de teste enviada. Ela chega em alguns segundos.':(j.error||'Não foi possível enviar o teste'))}catch(e){toast('Sem conexão para enviar o teste')}btn.disabled=false;chime()}
 function renderAlertBar(){const el=$('#alertBar');if(!el)return;if(!isLoja()){el.innerHTML='';return}
   const st=pushState;let h;
-  if(st==='on')h='';
+  if(st==='on')h=`<div class="mini">${I('bell')} Alertas ligados neste celular: pedido novo apita e chega notificação, mesmo com o app fechado.</div>`;
   else if(st==='ios')h=`<div class="geo off"><div><b>${I('bell')} Receber pedidos com o iPhone bloqueado</b><div class="mini">1. Toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b>.<br>2. Abra a hamburgueria pelo ícone novo e toque em <b>Ativar alertas</b>.<br>Enquanto isso, com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
   else if(st==='denied')h=`<div class="geo off"><div><b>${I('belloff')} Notificações bloqueadas</b><div class="mini">Libere nas configurações do celular: Ajustes → Notificações → ${isIOS()?'Boy Loja':'Chrome / navegador'} → Permitir. Depois recarregue esta página.</div></div></div>`;
   else if(st==='nosupport')h=`<div class="geo off"><div><b>${I('bell')} Alertas</b><div class="mini">Este navegador não recebe notificações. Com esta tela aberta, o celular apita a cada pedido novo.</div></div><button class="btn sm" data-act="psound">Testar som</button></div>`;
