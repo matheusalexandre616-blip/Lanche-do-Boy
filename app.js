@@ -1,5 +1,5 @@
 const PHOTOS={};let LOGO='',LOGO_SM='';
-const ICONS={users:'<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"/><path d="M15.5 4.65a3.5 3.5 0 0 1 0 6.7"/>',user:'<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c.9-3.8 3.8-5.8 7.5-5.8s6.6 2 7.5 5.8"/>',burger:'<path d="M4 11h16a8 6 0 0 0-16 0z"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1"/><path d="M4 18h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z"/>',flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',moto:'<circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/>',receipt:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/>',store:'<path d="M4 9.5 5.6 4h12.8L20 9.5"/><path d="M4 9.5c0 1.4 1.1 2.5 2.5 2.5S9 10.9 9 9.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-4.5h4V20"/>',chart:'<path d="M3 20.5h18"/><path d="M6.5 20.5v-6M12 20.5v-11M17.5 20.5V5"/>',eyeoff:'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',share:'<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',bag:'<path d="M6 7.5h12l-1 12.5H7L6 7.5z"/><path d="M9 7.5a3 3 0 0 1 6 0"/>',pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',bell:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/>',belloff:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/><path d="M3 3l18 18"/>',pix:'<path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="m8.5 12 3.5-3.5 3.5 3.5-3.5 3.5z"/>',cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>',card:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>',home:'<path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
+const ICONS={printer:'<path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/>',users:'<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"/><path d="M15.5 4.65a3.5 3.5 0 0 1 0 6.7"/>',user:'<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c.9-3.8 3.8-5.8 7.5-5.8s6.6 2 7.5 5.8"/>',burger:'<path d="M4 11h16a8 6 0 0 0-16 0z"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1"/><path d="M4 18h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z"/>',flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',moto:'<circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/>',receipt:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/>',store:'<path d="M4 9.5 5.6 4h12.8L20 9.5"/><path d="M4 9.5c0 1.4 1.1 2.5 2.5 2.5S9 10.9 9 9.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-4.5h4V20"/>',chart:'<path d="M3 20.5h18"/><path d="M6.5 20.5v-6M12 20.5v-11M17.5 20.5V5"/>',eyeoff:'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',share:'<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',bag:'<path d="M6 7.5h12l-1 12.5H7L6 7.5z"/><path d="M9 7.5a3 3 0 0 1 6 0"/>',pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',bell:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/>',belloff:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/><path d="M3 3l18 18"/>',pix:'<path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="m8.5 12 3.5-3.5 3.5 3.5-3.5 3.5z"/>',cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>',card:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>',home:'<path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
 const I=(n,c)=>'<svg class="ii'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';
 
 (function(){
@@ -502,7 +502,7 @@ function orderCard(o){
   if(o.status==='pronto'&&isPick(o))a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">${o.mode==='balcao'?'Entregue ao cliente':'Cliente retirou'}</button>`;
   else if(o.status==='pronto')a+=`<select data-act="assign" data-id="${o.id}" aria-label="Destinar a motoboy"><option value="">Escolha o motoboy</option>${dn.map((n,i)=>`<option value="${i}" ${o.driver===i?'selected':''}>${esc(n||'Motoboy '+(i+1))}</option>`).join('')}</select>`;
   if(o.status==='rota')a+=`<button class="btn sm ok" data-act="st" data-id="${o.id}" data-s="entregue">Confirmar entrega</button>`;
-  a+=`${o.customer.phone?`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`:''}<button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
+  a+=`${o.customer.phone?`<a class="btn sm ghost" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>`:''}<button class="btn sm ghost" data-act="oprint" data-id="${o.id}">${I('printer')} Imprimir</button><button class="btn sm ghost" data-act="odetail" data-id="${o.id}">Ver detalhes</button>`;
   const dr=o.driver!=null&&o.driver!==''?`<span class="pill">${I('moto')} ${esc(dn[o.driver]||'Motoboy')}</span>`:(o.mode==='balcao'?'<span class="pill">'+I('receipt')+' Balcão</span>':isPick(o)?'<span class="pill">'+I('store')+' Retirada no local</span>':o.status==='pronto'?'<span class="pill warn">Sem motoboy</span>':'');
   return `<article class="o ${o.status==='novo'?'new':''}"><div class="h"><b>#${o.code}</b><span class="mini">${hhmm(o.createdAt)} · há ${ago(o.createdAt)}</span></div>
    <div><b>${esc(o.customer.name)}</b> <span class="mini">${o.mode==='balcao'?I('receipt')+' Pedido de balcão':isPick(o)?I('store')+' Vai retirar no local':esc(o.addr.street)+', '+esc(o.addr.number)+' · '+esc(o.addr.bairro)}${o.customer.phone?' · '+esc(fmtPhone(o.customer.phone)):''}</span></div>${itemsHtml(o)}
@@ -546,7 +546,7 @@ document.addEventListener('click',e=>{
   else if(a==='cat'){catOn=b.dataset.c;filter='';$('#q').value='';renderCliente();const t=document.getElementById('cat-'+catOn);if(t)t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}
   else if(a==='prod')openProduct(id);else if(a==='cart')openCart();else if(a==='checkout'){cust?openCheckout():openLogin('checkout')}else if(a==='login')openLogin();else if(a==='clogout'){sb.auth.signOut().then(()=>{toast('Você saiu');render()})}else if(a==='track')openTrack();else if(a==='where')openWhere();
   else if(a==='copy')copy(b.dataset.t);else if(a==='logout'){sb.auth.signOut().then(()=>{setSess(null);if(PORTAL==='cliente'){location.hash='#cliente'}render()})}
-  else if(a==='st'){rpc('set_status',{oid:id,ns:b.dataset.s})}
+  else if(a==='st'){const ns=b.dataset.s,o0=S.orders[id];if(ns==='preparo'&&o0&&o0.status==='novo'&&LS.get('lb_autoprint',false))printOrder(o0);rpc('set_status',{oid:id,ns})}
   else if(a==='pix')rpc('confirm_pix',{oid:id});
   else if(a==='toggleOpen'){S.settings.open=!S.settings.open;if(S.settings.open)S.settings.pausedUntil=null;saveSettings();emit()}
   else if(a==='pause'){S.settings.pausedUntil=Date.now()+30*60000;saveSettings();emit();toast('Pedidos pausados por 30 minutos')}
@@ -562,6 +562,7 @@ document.addEventListener('click',e=>{
   else if(a==='geoon'){geoState='off';startGeo(true);renderMoto()}
   else if(a==='pdel')removeProduct(b,id);
   else if(a==='odetail')openOrderDetail(id);
+  else if(a==='oprint'){const o=S.orders[id];if(o)printOrder(o)}
   else if(a==='ohide')hideOrder(b,id);
   else if(a==='ohideall')hideAllFinished(b);
   else if(a==='gcreate'){cust?createGroup():openLogin('group')}
@@ -744,6 +745,7 @@ function openOrderDetail(id){const o=S.orders[id];if(!o)return;
    ${ppl.length>1?`<div><div class="lbl">Quanto cada um paga</div>${ppl.map(p=>`<div class="line" style="padding:8px 0"><span>${esc(p.person)}</span><b>${money(p.sub+fs)}</b></div>`).join('')}</div>`:''}
    <div class="sum"><div><span>Subtotal</span><span>${money(o.subtotal)}</span></div><div><span>${PK?'Retirada':'Taxa de entrega'}</span><span>${PK?'Grátis':money(o.fee)}</span></div><div class="tot"><span>Total</span><span>${money(o.total)}</span></div></div>
    <div><div class="lbl">Linha do tempo</div><ul class="tl">${tl}</ul></div>
+   <button class="btn dark" data-act="oprint" data-id="${o.id}">${I('printer')} Imprimir cupom</button>
    <a class="btn ok" target="_blank" rel="noopener" href="${waLink(o.customer.phone,orderMsg(o))}">Enviar resumo no WhatsApp</a>
    ${fin?`<button class="btn ghost danger" data-act="ohide" data-id="${o.id}">Excluir pedido</button>`:''}
   </div>`)}
@@ -1158,7 +1160,7 @@ async function posSend(){const err=$('#pos-err'),btn=$('#pos-send');err.textCont
   if(ent){const g=await geocodeAddr({street:addr.street,num:addr.number,bairro:addr.bairro,city:addr.city});if(g){addr.lat=g.lat;addr.lng=g.lng}}
   const{data,error}=await sb.rpc('create_counter_order',{p});
   if(error){btn.disabled=false;btn.textContent='Lançar pedido';err.textContent=error.message;return}
-  posCart=[];posOn=false;closeSheet();toast('Pedido '+(data&&data.code?'#'+data.code+' ':'')+'lançado na cozinha');loadOrders()}
+  posCart=[];posOn=false;closeSheet();toast('Pedido '+(data&&data.code?'#'+data.code+' ':'')+'lançado na cozinha');if(data&&LS.get('lb_autoprint',false))printOrder(rowToOrder(data));loadOrders()}
 
 /* ------------------------------ resumo do dia ------------------------------ */
 function openDaySummary(off){off=off||0;const d0=new Date();d0.setHours(0,0,0,0);d0.setDate(d0.getDate()-off);const d1=new Date(d0);d1.setDate(d1.getDate()+1);
@@ -1254,4 +1256,46 @@ window.__applyAssets=function(){const lg=$('.logo');if(lg){lg.textContent='';lg.
 {const ml=document.createElement('link');ml.rel='manifest';ml.href=PORTAL==='loja'?'/manifest-loja.webmanifest':PORTAL==='moto'?'/manifest-moto.webmanifest':'/manifest.webmanifest';document.head.appendChild(ml)}
 document.title=PORTAL==='loja'?'Hamburgueria · Lanches do Boy':PORTAL==='moto'?'Motoboy · Lanches do Boy':'Lanches do Boy Delivery';
 initData().then(()=>{loadEta();loadStorePos();if(!checkGroupHash()&&GRP.code)refreshGroup();renderNewItemForm()});render();{const b=document.getElementById('boot');if(b)b.remove()}
+
+/* ------------------------------ cupom de preparo (impressão) ------------------------------ */
+function receiptHTML(o){const PK=isPick(o),dn=S.settings.drivers;
+  const pay=o.pay.method==='pix'?(o.pixPaid?'PIX - PAGO':'PIX - CONFIRMAR PAGAMENTO'):o.pay.method==='dinheiro'?'DINHEIRO NA '+(PK?'RETIRADA':'ENTREGA')+(o.pay.change?' - TROCO P/ '+money(o.pay.change)+' (devolver '+money(Math.max(0,o.pay.change-o.total))+')':''):'CARTÃO NA '+(PK?'RETIRADA':'ENTREGA');
+  let lastP=null;const its=o.items.map(it=>{let h='';if(it.person&&it.person!==lastP){lastP=it.person;h+=`<div class="per">${esc(it.person)}</div>`}
+    h+=`<div class="it"><b>${it.qty}x ${esc(it.name)}</b><span>${money(it.unit*it.qty)}</span></div>`;
+    (it.extras||[]).forEach(x=>h+=`<div class="sub">+ ${esc(x)}</div>`);(it.removed||[]).forEach(x=>h+=`<div class="sub neg">SEM ${esc(x)}</div>`);
+    if(it.note)h+=`<div class="sub obs">OBS: ${esc(it.note)}</div>`;return h}).join('');
+  const modo=o.mode==='balcao'?'BALCÃO':PK?'RETIRADA NO LOCAL':'ENTREGA',bm=$('.brandmark b');
+  return `<div class="c md">${esc(bm?bm.textContent:'')}</div>
+<div class="c">${new Date(o.createdAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div><hr>
+<div class="c big">PEDIDO #${o.code}</div><div class="c md">${modo}${o.grp?' · GRUPO':''}</div><hr>
+<div><b>Cliente:</b> ${esc(o.customer.name)}</div>${o.customer.phone?`<div><b>Fone:</b> ${esc(fmtPhone(o.customer.phone))}</div>`:''}
+${!PK?`<div><b>End.:</b> ${esc(o.addr.street)}, ${esc(o.addr.number)}</div><div><b>Bairro:</b> ${esc(o.addr.bairro)}</div>${o.addr.comp?`<div><b>Compl.:</b> ${esc(o.addr.comp)}</div>`:''}${o.driver!=null&&dn[o.driver]?`<div><b>Motoboy:</b> ${esc(dn[o.driver])}</div>`:''}`:''}
+<hr>${its}<hr>
+<div class="row"><span>Subtotal</span><span>${money(o.subtotal)}</span></div><div class="row"><span>${PK?'Retirada':'Taxa de entrega'}</span><span>${PK?'GRÁTIS':money(o.fee)}</span></div>
+<div class="row tot"><span>TOTAL</span><span>${money(o.total)}</span></div><div class="box">${pay}</div>
+<hr><div class="c">Impresso às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`}
+let lastPrint=0;
+function printOrder(o){if(Date.now()-lastPrint<1200)return;lastPrint=Date.now();try{const W=LS.get('lb_paper','80');
+  let st=document.getElementById('printCss');if(!st){st=document.createElement('style');st.id='printCss';document.head.appendChild(st)}
+  st.textContent=`#printArea{display:none}
+@media print{@page{size:${W}mm auto;margin:3mm}html,body{background:#fff!important;padding:0!important;margin:0!important}
+body.printing>*:not(#printArea){display:none!important}body.printing::before{display:none!important}
+#printArea{display:block!important;width:${W==='58'?'52':'74'}mm;color:#000;background:#fff;font:${W==='58'?'11':'12.5'}px/1.3 "Courier New",Courier,monospace}
+#printArea *{color:#000!important}#printArea .c{text-align:center}#printArea .big{font-size:2em;font-weight:900}#printArea .md{font-size:1.25em;font-weight:900}
+#printArea hr{border:0;border-top:1px dashed #000;margin:6px 0}#printArea .it{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-size:1.15em}
+#printArea .it span{white-space:nowrap}#printArea .sub{padding-left:12px}#printArea .neg{font-weight:700}#printArea .obs{font-weight:700;text-decoration:underline}
+#printArea .per{margin-top:7px;font-weight:900;text-transform:uppercase;border-bottom:1px solid #000}#printArea .row{display:flex;justify-content:space-between}
+#printArea .tot{font-weight:900;font-size:1.25em}#printArea .box{border:2px solid #000;padding:3px 5px;margin-top:4px;font-weight:700}}`;
+  let a=document.getElementById('printArea');if(!a){a=document.createElement('div');a.id='printArea';document.body.appendChild(a)}
+  a.innerHTML=receiptHTML(o);document.body.classList.add('printing');
+  const done=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
+  setTimeout(()=>{try{window.print()}catch(e){toast('Não foi possível abrir a impressão')}},60)}catch(e){console.warn(e);toast('Não foi possível abrir a impressão')}}
+function renderPrintBox(){const el=$('#printBox');if(!el||el.dataset.ready)return;el.dataset.ready=1;const W=LS.get('lb_paper','80');
+  el.innerHTML=`<label class="opt"><span><b>Imprimir o cupom ao aceitar o pedido</b><small class="mini" style="display:block">Vale também para pedido de balcão. Fica salvo neste aparelho.</small></span><input type="checkbox" id="pr-auto" ${LS.get('lb_autoprint',false)?'checked':''}></label>
+  <div class="f"><label for="pr-paper">Largura do papel</label><select id="pr-paper"><option value="80" ${W==='80'?'selected':''}>80 mm (impressora térmica padrão)</option><option value="58" ${W==='58'?'selected':''}>58 mm (impressora pequena / Bluetooth)</option></select></div>
+  <div class="mini">A impressora precisa estar instalada no computador ou celular da loja. Ao tocar em Imprimir, escolha a impressora na janela que abrir.</div>`;
+  $('#pr-auto').addEventListener('change',e=>{LS.set('lb_autoprint',e.target.checked);e.target.closest('.opt').classList.toggle('on',e.target.checked);toast(e.target.checked?'O cupom vai abrir para impressão ao aceitar cada pedido':'Impressão automática desligada')});
+  $('#pr-auto').closest('.opt').classList.toggle('on',$('#pr-auto').checked);
+  $('#pr-paper').addEventListener('change',e=>{LS.set('lb_paper',e.target.value);toast('Papel de '+e.target.value+' mm')})}
+setInterval(renderPrintBox,1000);setTimeout(renderPrintBox,300);
 })();
