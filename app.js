@@ -192,7 +192,7 @@ const rowToOrder=r=>{const i=S.drivers.findIndex(d=>d.id===r.driver);return{id:r
 function rebuildOrders(){const m={};S.rows.forEach(r=>{m[r.id]=rowToOrder(r)});S.orders=m;S.settings.drivers=S.drivers.map(d=>d.name)}
 async function loadOrders(){if(!S.user){S.rows=[];rebuildOrders();emit();return}
   const{data,error}=await sb.from('orders').select('*').is('hidden_at',null).order('created_at',{ascending:false}).limit(300);
-  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data);notifyCustomer()}
+  if(error){console.warn(error);return}S.rows=data;rebuildOrders();emit();syncGeo();loadLoc();alertNewOrders(data);alertDriver();notifyCustomer()}
 /* ------------------------------ som de pedido novo ------------------------------ */
 let actx=null,seenNew=null;
 function unlockAudio(){try{const nw=!actx;actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();if(nw){const b=actx.createBuffer(1,1,22050),src=actx.createBufferSource();src.buffer=b;src.connect(actx.destination);src.start(0)}}catch(e){}}
@@ -201,6 +201,14 @@ function chime(){unlockAudio();if(!actx)return;
   [0,.55,1.1].forEach(d=>[880,1175].forEach((f,i)=>{const t=actx.currentTime+d+i*.18,o=actx.createOscillator(),g=actx.createGain();
     o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.4);
     o.connect(g).connect(actx.destination);o.start(t);o.stop(t+.42)}))}
+let seenDrv=null;
+setInterval(()=>{if(isMoto()&&!isLoja()&&!document.hidden)loadOrders()},20000);
+function alertDriver(){if(!isMoto()||isLoja()){seenDrv=null;return}const me=S.user&&S.user.id;
+  const now=S.rows.filter(r=>r.driver===me&&(r.status==='pronto'||r.status==='rota')).map(r=>r);
+  if(seenDrv){const fresh=now.filter(r=>!seenDrv.has(r.id));if(fresh.length){chime();vib([300,120,300,120,300]);
+    toast(fresh.length>1?fresh.length+' novas entregas para você!':'Nova entrega para você: pedido #'+fresh[0].code);
+    if(cur()!=='motoboy')location.hash='#motoboy'}}
+  seenDrv=new Set(now.map(r=>r.id))}
 function alertNewOrders(rows){
   if(!isLoja()){seenNew=null;return}
   const now=rows.filter(r=>r.status==='novo').map(r=>r.id);
@@ -294,7 +302,7 @@ const pinOf=i=>(S.settings.pins||[])[i]||String(1111*(i+1));
 let sess=null;
 const setSess=x=>{sess=x};
 const isLoja=()=>sess&&sess.role==='loja', isMoto=()=>sess&&sess.role==='motoboy';
-const allowed=v=>PORTAL==='cliente'?v==='cliente':isLoja()?v!=='entrar':PORTAL==='moto'?(isMoto()&&v==='motoboy'):false;
+const allowed=v=>PORTAL==='cliente'?v==='cliente':isLoja()?v!=='entrar':PORTAL==='moto'?(isMoto()&&(v==='motoboy'||v==='cliente')):false;
 let wanted=null,loginTab='loja',lastAssigned=-1;
 function renderLogin(){
   const dn=S.settings.drivers;
@@ -324,8 +332,8 @@ function render(){
     if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
     else v='entrar'}
   document.body.dataset.v=v;
-  const nav=$('#nav');nav.hidden=!isLoja()||PORTAL==='cliente';$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=true;if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
-  $('#t-cliente').hidden=!isLoja();
+  const nav=$('#nav');nav.hidden=!(isLoja()||isMoto())||PORTAL==='cliente';nav.classList.toggle('two',isMoto()&&!isLoja());document.body.classList.toggle('ro-menu',isMoto()&&!isLoja());$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=true;if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
+  $('#t-cliente').hidden=!(isLoja()||isMoto());$('#t-cozinha').hidden=!isLoja();{const sp=$('#t-cliente span');if(sp)sp.textContent=isMoto()&&!isLoja()?'Cardápio':'Cliente'}
   VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;{const t=$('#t-'+x);if(t)t.setAttribute('aria-selected',x===v)}});
   const os=Object.values(S.orders);
   const nNovo=os.filter(o=>o.status==='novo').length;
@@ -380,7 +388,7 @@ function renderDock(v,mine){
 let trackOpen=false;
 function openSheet(html,onReady){const L=$('#layer');L.innerHTML=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;document.body.style.overflow='hidden';trackOpen=false;if(onReady)onReady($('.sheet',L))}
 function closeSheet(){if(posOn&&$('#layer .sheet')&&!$('#pos')){openPOS();return}posOn=false;$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false;setTb('home')}
-function openProduct(id){
+function openProduct(id){if(isMoto()&&!isLoja())return;
   const p=P[id];let qty=1,note='';const ex=new Set(),rm=new Set();
   const list=EXTRA_SETS[p.extras]||EXTRAS;
   const calc=()=>p.price+[...ex].reduce((a,e)=>a+list.find(x=>x.id===e).p,0);
