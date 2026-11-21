@@ -359,7 +359,7 @@ const cartCount=()=>cart.reduce((a,l)=>a+l.qty,0),cartSub=()=>cart.reduce((a,l)=
 const saveCart=()=>LS.set('lb_cart',cart);
 function thumb(p){const u=S.photos[p.id]||PHOTOS[p.id];if(u)return `<img src="${u}" alt="${esc(p.name)}" loading="lazy">`;return `<img class="nophoto" src="${LOGO_SM}" alt="Lanches do Boy">`;}
 function renderCliente(){
-  const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=IG_URL?`<a class="seal3d iglink" href="${IG_URL}" target="_blank" rel="noopener" aria-label="Abrir o Instagram da hamburgueria"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span><span class="igbadge">${I('insta')}</span></a>`:`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
+  const ha=$('#heroArt');if(!ha.firstElementChild)ha.innerHTML=IG_URL?`<a class="seal3d iglink" href="${IG_URL}" target="_blank" rel="noopener" aria-label="Abrir o Instagram da hamburgueria"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></a>`:`<div class="seal3d"><img class="seal" src="${LOGO}" alt="Selo Food Truck Lanches do Boy, desde 2014"><span class="shine"></span></div>`;
   renderGroupBar();renderOrderStatus();
   $('#feeMin').textContent=money(Math.min(feeFor(''),...BAIRROS.map(b=>b.fee)));
   const open=storeOpen();const pill=$('#openPill');pill.className='pill'+(open?'':' closed');pill.lastElementChild.textContent=open?'Aberta agora':(storeNext()||'Loja fechada');
