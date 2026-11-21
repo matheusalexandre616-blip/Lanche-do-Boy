@@ -47,6 +47,7 @@ const SRC = { url: 'https://dvrupqsedmgqpfmoyivm.supabase.co', ref: 'dvrupqsedmg
 swap('app.js', [
   [SRC.url, B.supabaseUrl],
   [/SB_KEY='[^']+'/.exec(fs.readFileSync(path.join(OUT, 'app.js'), 'utf8'))[0], `SB_KEY='${B.supabaseAnonKey}'`],
+  ["const IG_URL='https://www.instagram.com/lanchesdo_boy/';", "const IG_URL='"+(B.instagram||'')+"';"],
   [/VAPID_PUB='[^']+'/.exec(fs.readFileSync(path.join(OUT, 'app.js'), 'utf8'))[0], `VAPID_PUB='${B.vapidPublic}'`],
   ...common,
 ]);

@@ -9,8 +9,9 @@
   "addrFull": "Rua da Demonstração, 100, Belo Horizonte, Brasil",
   "addrShort": "Rua da Demonstração, 100",
   "lat": -19.8415,
-  "lng": -43.9710,
+  "lng": -43.971,
   "supabaseUrl": "https://yzbwmvygigewgurzzvya.supabase.co",
   "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YndtdnlnaWdld2d1cnp6dnlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2Nzk4MjEsImV4cCI6MjExMDI1NTgyMX0.ickVhdUKDPT9KpaPVcbZV47wa9abLHLLo9NX6j_rs_I",
-  "vapidPublic": "BC7ACeZzS0AYMGn5QMj3bjr8wAkGAOVPn5esmeDP3xj90CgPFwqMXP7jX8XRQC6Ke2MYa2Hj7oYgvDpz4t11ULo"
+  "vapidPublic": "BC7ACeZzS0AYMGn5QMj3bjr8wAkGAOVPn5esmeDP3xj90CgPFwqMXP7jX8XRQC6Ke2MYa2Hj7oYgvDpz4t11ULo",
+  "instagram": ""
 }
