@@ -1,4 +1,5 @@
 const PHOTOS={};let LOGO='',LOGO_SM='';
+const ADMIN_PANEL=true;
 const IG_URL='https://www.instagram.com/lanchesdo_boy/';
 const ICONS={insta:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r=".6" fill="currentColor"/>',printer:'<path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/>',users:'<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"/><path d="M15.5 4.65a3.5 3.5 0 0 1 0 6.7"/>',user:'<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c.9-3.8 3.8-5.8 7.5-5.8s6.6 2 7.5 5.8"/>',burger:'<path d="M4 11h16a8 6 0 0 0-16 0z"/><path d="M3 14.5c1.5 0 1.5 1 3 1s1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1"/><path d="M4 18h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z"/>',flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',moto:'<circle cx="6" cy="16.5" r="3"/><circle cx="18" cy="16.5" r="3"/><path d="M6 16.5 9 9.5h5.5l3.5 7"/><path d="M14.5 9.5 13.5 6.5H11"/>',receipt:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/>',store:'<path d="M4 9.5 5.6 4h12.8L20 9.5"/><path d="M4 9.5c0 1.4 1.1 2.5 2.5 2.5S9 10.9 9 9.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-4.5h4V20"/>',chart:'<path d="M3 20.5h18"/><path d="M6.5 20.5v-6M12 20.5v-11M17.5 20.5V5"/>',eyeoff:'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',share:'<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',bag:'<path d="M6 7.5h12l-1 12.5H7L6 7.5z"/><path d="M9 7.5a3 3 0 0 1 6 0"/>',pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',bell:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/>',belloff:'<path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/><path d="M3 3l18 18"/>',pix:'<path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="m8.5 12 3.5-3.5 3.5 3.5-3.5 3.5z"/>',cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>',card:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>',home:'<path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
 const I=(n,c)=>'<svg class="ii'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';
@@ -7,7 +8,7 @@ const I=(n,c)=>'<svg class="ii'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden=
 "use strict";
 /* ------------------------------ utilidades ------------------------------ */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const money=v=>'R$ '+(+v).toFixed(2).replace('.',',');
+const money=v=>{const n=(+v||0).toFixed(2).split('.');return 'R$ '+n[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+n[1]};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const digits=s=>String(s||'').replace(/\D/g,'');
@@ -1194,9 +1195,11 @@ function openDaySummary(off){off=off||0;const d0=new Date();d0.setHours(0,0,0,0)
 
 /* ------------------------------ abas da hamburgueria ------------------------------ */
 let ktab=LS.get('lb_ktab','pedidos');
-function setKtab(k){ktab=k;LS.set('lb_ktab',k);$$('[data-kt]').forEach(b=>{const on=b.dataset.kt===k;b.setAttribute('aria-selected',on)});$$('[data-kp]').forEach(p=>p.hidden=p.dataset.kp!==k);window.scrollTo({top:0})}
+function setKtab(k){if(!document.querySelector('[data-kt="'+k+'"]'))k='pedidos';ktab=k;LS.set('lb_ktab',k);$$('[data-kt]').forEach(b=>{const on=b.dataset.kt===k;b.setAttribute('aria-selected',on)});$$('[data-kp]').forEach(p=>p.hidden=p.dataset.kp!==k);window.scrollTo({top:0})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-kt]');if(b)setKtab(b.dataset.kt)});
+(function(){const kt=$('.ktabs');if(!ADMIN_PANEL){const b=$('[data-kt=painel]'),p=$('[data-kp=painel]');if(b)b.remove();if(p)p.remove()}else if(kt)kt.classList.add('k4')})();
 setTimeout(()=>setKtab(ktab),0);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-kt=painel]');if(b)repLoad()});
 
 /* ------------------------------ logística: GPS, mapa e tempo estimado ------------------------------ */
 let etaInfo=null,TRK_T=null,storePos=LS.get('lb_store',null)||{lat:STORE.lat,lng:STORE.lng};
@@ -1358,4 +1361,80 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act=bton],
     btPrint(t).catch(x=>{console.warn(x);toast('A impressora não respondeu')})}});
 setTimeout(btAuto,1500);
 setInterval(renderPrintBox,1000);setTimeout(renderPrintBox,300);
+
+/* ------------------------------ painel administrativo e relatórios ------------------------------ */
+const REP={per:LS.get('lb_rper','7'),d1:null,d2:null,data:null,busy:false};
+const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const brD=s=>{const [y,m,d]=s.split('-');return d+'/'+m};
+const brDY=s=>{const [y,m,d]=s.split('-');return d+'/'+m+'/'+y};
+function repRange(){const t=new Date();t.setHours(12,0,0,0);const k=REP.per;
+  if(k==='hoje')return [ymd(t),ymd(t)];
+  if(k==='7'){const a=new Date(t);a.setDate(a.getDate()-6);return [ymd(a),ymd(t)]}
+  if(k==='30'){const a=new Date(t);a.setDate(a.getDate()-29);return [ymd(a),ymd(t)]}
+  if(k==='mes'){const a=new Date(t.getFullYear(),t.getMonth(),1,12);return [ymd(a),ymd(t)]}
+  if(k==='mesant'){const a=new Date(t.getFullYear(),t.getMonth()-1,1,12),b=new Date(t.getFullYear(),t.getMonth(),0,12);return [ymd(a),ymd(b)]}
+  return [REP.d1||ymd(t),REP.d2||ymd(t)]}
+async function repLoad(){const el=$('#rep');if(!el||!isLoja()||REP.busy)return;REP.busy=true;
+  const [d1,d2]=repRange();REP.cur=[d1,d2];if(!REP.data)el.innerHTML=repHead()+'<div class="rep-empty">Carregando relatório…</div>';
+  const{data,error}=await sb.rpc('sales_report',{d1,d2});REP.busy=false;
+  if(error){el.innerHTML=repHead()+`<div class="rep-empty">Não foi possível carregar o relatório. ${esc(error.message||'')}</div>`;return}
+  REP.data=data;repRender()}
+function repHead(){const P=[['hoje','Hoje'],['7','7 dias'],['30','30 dias'],['mes','Este mês'],['mesant','Mês passado'],['custom','Escolher datas']];
+  const [d1,d2]=REP.cur||repRange();
+  return `<div class="rep-per" role="tablist" aria-label="Período do relatório">${P.map(([k,l])=>`<button data-rper="${k}" class="${REP.per===k?'on':''}" aria-selected="${REP.per===k}">${l}</button>`).join('')}</div>
+  ${REP.per==='custom'?`<div class="rep-range"><div class="f"><label for="rp-d1">De</label><input type="date" id="rp-d1" value="${d1}"></div><div class="f"><label for="rp-d2">Até</label><input type="date" id="rp-d2" value="${d2}"></div><button class="btn sm" data-act="rpgo">Ver</button></div>`:''}`}
+function pct(a,b){if(!b)return '';const p=Math.round((a-b)/b*100);return `<span class="dl ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p)}% vs. período anterior</span>`}
+const MLAB={pix:'Pix',dinheiro:'Dinheiro',cartao:'Cartão'},MODE={entrega:'Entrega',retirada:'Retirada no local',balcao:'Balcão'},WD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function bars(rows,lab,val,opt={}){const W=420,H=Math.round((opt.h||190)*.78),pl=4,pr=4,pt=20,pb=22,n=rows.length;if(!n)return '';
+  const mx=Math.max(1,...rows.map(val)),bw=(W-pl-pr)/n,gap=Math.min(6,bw*.25),y=v=>pt+(H-pt-pb)*(1-v/mx);
+  const every=Math.ceil(n/(opt.maxLabels||12)),best=rows.reduce((a,r,i)=>val(r)>val(rows[a])?i:a,0);
+  let g=`<line x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line)"/>`;
+  rows.forEach((r,i)=>{const v=val(r),x=pl+i*bw+gap/2,w=Math.max(1,bw-gap),yy=y(v),on=v>0&&i===best;
+    g+=`<rect x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,H-pb-yy).toFixed(1)}" rx="${Math.min(4,w/3).toFixed(1)}" fill="${on?'var(--brand)':'color-mix(in srgb,var(--brand) 45%,var(--surface2))'}"><title>${esc(lab(r))}: ${esc(opt.fmt?opt.fmt(v):String(v))}</title></rect>`;
+    if(on)g+=`<text x="${(x+w/2).toFixed(1)}" y="${(yy-6).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">${esc(opt.fmt?opt.fmt(v):String(v))}</text>`;
+    if(i%every===0||i===n-1&&n<=31)g+=`<text x="${(x+w/2).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${esc(lab(r))}</text>`});
+  return `<div class="rchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.title||'')}">${g}</svg></div>`}
+function rlist(rows,name,val,sub,fmt){if(!rows.length)return '<div class="mini">Sem dados no período.</div>';const mx=Math.max(1,...rows.map(val));
+  return `<div class="rlist">${rows.map((r,i)=>`<div class="rrow"><span class="nm">${i+1}. ${esc(name(r))}</span><span class="vl">${fmt(val(r))}</span><span class="rbar"><i style="width:${(val(r)/mx*100).toFixed(1)}%"></i></span>${sub?`<span class="sb">${sub(r)}</span>`:''}</div>`).join('')}</div>`}
+function repRender(){const el=$('#rep'),D=REP.data;if(!el||!D)return;const K=D.kpi,[d1,d2]=REP.cur,one=d1===d2,cnt=n=>n+(n===1?' pedido':' pedidos');
+  const per=one?brDY(d1):brDY(d1)+' a '+brDY(d2);
+  let h=repHead()+`<div class="mini">Período: <b>${per}</b>. Pedidos cancelados não entram no faturamento.</div>
+  <div class="kpis">
+   <div class="kpi"><small>Faturamento</small><b>${money(K.revenue)}</b>${pct(+K.revenue,+K.prev_revenue)||'<span class="dl mut">&nbsp;</span>'}</div>
+   <div class="kpi"><small>Pedidos</small><b>${K.orders}</b>${pct(+K.orders,+K.prev_orders)||'<span class="dl mut">&nbsp;</span>'}</div>
+   <div class="kpi"><small>Ticket médio</small><b>${money(K.avg)}</b><span class="dl mut">por pedido</span></div>
+   <div class="kpi"><small>Itens vendidos</small><b>${K.items}</b><span class="dl mut">${K.customers} ${K.customers===1?'cliente':'clientes'} do app</span></div>
+   <div class="kpi"><small>Taxas de entrega</small><b>${money(K.fees)}</b><span class="dl mut">incluídas no faturamento</span></div>
+   <div class="kpi"><small>Cancelados</small><b>${K.canceled}</b><span class="dl ${K.canceled?'down':'mut'}">${K.canceled?money(K.canceled_value)+' perdidos':'nenhum'}</span></div>
+  </div>`;
+  if(!K.orders){el.innerHTML=h+'<div class="rep-empty">Nenhuma venda neste período.</div>'+repCsvBtn();return}
+  h+='<div class="rgrid">';
+  if(!one)h+=`<div class="rcard"><h3>Vendas por dia</h3><div class="lead">Faturamento de cada dia. A barra destacada é o melhor dia.</div>${bars(D.by_day,r=>brD(r.d),r=>+r.revenue,{fmt:money,title:'Vendas por dia',maxLabels:7})}</div>`;
+  const hrs=D.by_hour.filter(r=>r.orders>0),h0=hrs.length?Math.max(0,Math.min(...hrs.map(r=>r.h))-1):0,h1=hrs.length?Math.min(23,Math.max(...hrs.map(r=>r.h))+1):23;
+  h+=`<div class="rcard"><h3>Horário de pico</h3><div class="lead">Quantidade de pedidos por hora do dia.</div>${bars(D.by_hour.filter(r=>r.h>=h0&&r.h<=h1),r=>r.h+'h',r=>r.orders,{fmt:v=>cnt(v),title:'Pedidos por hora',maxLabels:8,h:170})}</div>`;
+  if(!one)h+=`<div class="rcard"><h3>Dias da semana</h3><div class="lead">Pedidos por dia da semana no período.</div>${bars(D.by_weekday,r=>WD[r.w],r=>r.orders,{fmt:v=>cnt(v),title:'Pedidos por dia da semana',h:160})}</div>`;
+  h+='</div>';
+  h+=`<div class="rgrid">
+   <div class="rcard"><h3>Mais vendidos</h3>${rlist(D.products,r=>r.name,r=>+r.qty,r=>`<span>${money(r.revenue)}</span>`,v=>v+' un.')}</div>
+   <div class="rcard"><h3>Formas de pagamento</h3>${rlist(D.payments,r=>MLAB[r.method]||r.method,r=>+r.revenue,r=>`<span>${cnt(r.orders)}</span><span>${Math.round(r.revenue/K.revenue*100)}%</span>`,money)}
+     <h3 style="margin-top:6px">Tipo de pedido</h3>${rlist(D.modes,r=>MODE[r.mode]||r.mode,r=>+r.orders,r=>`<span>${money(r.revenue)}</span><span>${Math.round(r.orders/K.orders*100)}%</span>`,v=>cnt(v))}</div>
+   <div class="rcard"><h3>Bairros que mais pedem</h3>${rlist(D.bairros,r=>r.bairro,r=>+r.orders,r=>`<span>${money(r.revenue)}</span><span>taxas ${money(r.fees)}</span>`,v=>cnt(v))}</div>
+   <div class="rcard"><h3>Entregas por motoboy</h3>${rlist(D.drivers,r=>r.name,r=>+r.deliveries,r=>`<span>taxas ${money(r.fees)}</span>`,v=>v+(v===1?' entrega':' entregas'))}</div>
+   <div class="rcard"><h3>Melhores clientes</h3>${rlist(D.customers,r=>r.name||'Cliente',r=>+r.revenue,r=>`<span>${cnt(r.orders)}${r.phone?' · '+esc(fmtPhone(r.phone)):''}</span><span>último ${new Date(r.last).toLocaleDateString('pt-BR')}</span>`,money)}</div>
+  </div>`+repCsvBtn();
+  el.innerHTML=h}
+const repCsvBtn=()=>`<div><button class="btn ghost" data-act="rpcsv">${I('receipt')} Baixar planilha do período (.csv)</button><div class="mini" style="margin-top:6px">Abre no Excel ou no Google Planilhas, com um pedido por linha.</div></div>`;
+async function repCsv(btn){const [d1,d2]=REP.cur||repRange();btn.disabled=true;const{data,error}=await sb.rpc('orders_in_range',{d1,d2});btn.disabled=false;
+  if(error){dbFail(error);return}const q=v=>{v=v==null?'':String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v},n=v=>String((+v||0).toFixed(2)).replace('.',',');
+  const L=[['Pedido','Data','Hora','Status','Tipo','Cliente','WhatsApp','Bairro','Itens','Subtotal','Taxa','Total','Pagamento','Pago','Motoboy'].join(';')];
+  const dn={};S.drivers.forEach(d=>dn[d.id]=d.name);
+  (data||[]).forEach(o=>{const t=new Date(o.created_at);L.push([o.code,t.toLocaleDateString('pt-BR'),t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),STATUS[o.status]||o.status,MODE[o.mode]||o.mode,(o.customer||{}).name,(o.customer||{}).phone,(o.addr||{}).bairro,
+    (o.items||[]).map(i=>i.qty+'x '+i.name+((i.extras||[]).length?' (+'+i.extras.join(', ')+')':'')).join(' | '),n(o.subtotal),n(o.fee),n(o.total),MLAB[(o.pay||{}).method]||'',o.paid||o.pix_paid?'Sim':'Não',dn[o.driver]||''].map(q).join(';'))});
+  const blob=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='relatorio-'+d1+'-a-'+d2+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  toast((data||[]).length+' pedidos na planilha')}
+document.addEventListener('click',e=>{const p=e.target.closest('[data-rper]');if(p){REP.per=p.dataset.rper;LS.set('lb_rper',REP.per);if(REP.per==='custom'){REP.cur=repRange();$('#rep').innerHTML=repHead()+($('#rep .kpis')?'':'');if(REP.data)repRender()}else repLoad();return}
+  const b=e.target.closest('[data-act=rpgo],[data-act=rpcsv]');if(!b)return;
+  if(b.dataset.act==='rpgo'){const a=$('#rp-d1').value,z=$('#rp-d2').value;if(!a||!z||z<a){toast('Escolha a data inicial e a final');return}REP.d1=a;REP.d2=z;repLoad()}else repCsv(b)});
+setInterval(()=>{if(ktab==='painel'&&isLoja()&&!document.hidden&&REP.per==='hoje')repLoad()},60000);
+setTimeout(()=>{if(ktab==='painel')repLoad()},1200);
 })();
