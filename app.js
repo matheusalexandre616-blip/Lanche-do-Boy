@@ -304,7 +304,8 @@ const pinOf=i=>(S.settings.pins||[])[i]||String(1111*(i+1));
 let sess=null;
 const setSess=x=>{sess=x};
 const isLoja=()=>sess&&sess.role==='loja', isMoto=()=>sess&&sess.role==='motoboy';
-const allowed=v=>PORTAL==='cliente'?v==='cliente':isLoja()?v!=='entrar':PORTAL==='moto'?(isMoto()&&(v==='motoboy'||v==='cliente')):false;
+const motoMode=()=>PORTAL==='moto'||(isMoto()&&!isLoja());
+const allowed=v=>PORTAL==='cliente'?v==='cliente':PORTAL==='moto'?((isMoto()||isLoja())&&(v==='motoboy'||v==='cliente')):isLoja()?v!=='entrar':false;
 let wanted=null,loginTab='loja',lastAssigned=-1;
 function renderLogin(){
   const dn=S.settings.drivers;
@@ -330,12 +331,12 @@ function render(){
   if(PORTAL==='cliente'&&isMoto()){location.replace('/motoboy');return}
   if(!allowed(v)){
     if(PORTAL==='cliente'){v='cliente'}else
-    if(isLoja()){location.hash='#cozinha';return}else
-    if(PORTAL==='moto'&&isMoto()&&v!=='motoboy'){location.hash='#motoboy';return}
+    if(PORTAL==='moto'&&(isMoto()||isLoja())){location.hash='#motoboy';return}else
+    if(isLoja()){location.hash='#cozinha';return}
     else v='entrar'}
   document.body.dataset.v=v;
-  const nav=$('#nav');nav.hidden=!(isLoja()||isMoto())||PORTAL==='cliente';nav.classList.toggle('two',isMoto()&&!isLoja());document.body.classList.toggle('ro-menu',isMoto()&&!isLoja());$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=true;if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
-  $('#t-cliente').hidden=!(isLoja()||isMoto());$('#t-cozinha').hidden=!isLoja();{const sp=$('#t-cliente span');if(sp)sp.textContent=isMoto()&&!isLoja()?'Cardápio':'Cliente'}
+  const nav=$('#nav');nav.hidden=!(isLoja()||isMoto())||PORTAL==='cliente';nav.classList.toggle('two',motoMode());document.body.classList.toggle('ro-menu',motoMode());$('#logout').hidden=!sess;{const cb=$('#custbtn');cb.hidden=true;if(cust){cb.textContent='Olá, '+cust.name.split(' ')[0]+' · Sair';cb.dataset.act='clogout'}else{cb.textContent='Entrar';cb.dataset.act='login'}}
+  $('#t-cliente').hidden=!(isLoja()||isMoto());$('#t-cozinha').hidden=!isLoja()||motoMode();{const sp=$('#t-cliente span');if(sp)sp.textContent=motoMode()?'Cardápio':'Cliente'}
   VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;{const t=$('#t-'+x);if(t)t.setAttribute('aria-selected',x===v)}});
   const os=Object.values(S.orders);
   const nNovo=os.filter(o=>o.status==='novo').length;
@@ -390,7 +391,7 @@ function renderDock(v,mine){
 let trackOpen=false;
 function openSheet(html,onReady){const L=$('#layer');L.innerHTML=`<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;document.body.style.overflow='hidden';trackOpen=false;if(onReady)onReady($('.sheet',L))}
 function closeSheet(){if(posOn&&$('#layer .sheet')&&!$('#pos')){openPOS();return}posOn=false;$('#layer').innerHTML='';document.body.style.overflow='';trackOpen=false;setTb('home')}
-function openProduct(id){if(isMoto()&&!isLoja())return;
+function openProduct(id){if(motoMode()&&PORTAL!=='cliente')return;
   const p=P[id];let qty=1,note='';const ex=new Set(),rm=new Set();
   const list=EXTRA_SETS[p.extras]||EXTRAS;
   const calc=()=>p.price+[...ex].reduce((a,e)=>a+list.find(x=>x.id===e).p,0);
@@ -701,7 +702,7 @@ function renderMoto(){
   const dn=S.settings.drivers;if(drv==null||drv>=dn.length)drv=0;
   const mine=Object.values(S.orders).filter(o=>o.driver===drv&&(o.status==='pronto'||o.status==='rota'));
   const plan=planRoute(mine),legs=mapsLegs(plan.stops),waiting=mine.filter(o=>o.status==='pronto').length;
-  let h=geoBanner()+`<div class="card" style="margin-top:6px;display:grid;gap:12px">${isLoja()?`<div class="f"><label for="drvSel">Vendo a tela do motoboy</label><select id="drvSel">${dn.map((n,i)=>`<option value="${i}" ${i===drv?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`:`<div><span class="mini">Olá,</span> <b>${esc(dn[drv])}</b></div>`}
+  let h=geoBanner()+`<div class="card" style="margin-top:6px;display:grid;gap:12px">${isLoja()?`${PORTAL==='moto'?'<div class="mini" style="margin:-2px 0 2px">Você está com o login da hamburgueria. Para entrar como motoboy, toque em <b>Sair</b> e use o login dele.</div>':''}<div class="f"><label for="drvSel">Vendo a tela do motoboy</label><select id="drvSel">${dn.map((n,i)=>`<option value="${i}" ${i===drv?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`:`<div><span class="mini">Olá,</span> <b>${esc(dn[drv])}</b></div>`}
    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b class="d" style="font-size:26px">${mine.length} ${mine.length===1?'entrega':'entregas'}</b><div class="mini">${mine.length?`Rota de ${plan.km.toFixed(1).replace('.',',')} km · cerca de ${plan.min} min`:'Aguardando a hamburgueria destinar pedidos'}</div></div></div>
    ${mine.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${waiting?`<button class="btn" data-act="start" style="flex:1">Sair para entrega (${waiting})</button>`:''}${legs.map((u,i)=>`<a class="btn ${waiting?'ghost':''}" style="flex:1" href="${u}" target="_blank" rel="noopener">Abrir rota no Google Maps${legs.length>1?' · trecho '+(i+1):''}</a>`).join('')}</div>`:''}</div>`;
   if(!mine.length){h+=`<div class="empty" style="margin-top:12px">Nenhuma entrega na fila. Quando a hamburgueria destinar um pedido para você, ele aparece aqui com a rota.</div>`;$('#moto').innerHTML=h;bindDrv();return}
@@ -1376,7 +1377,7 @@ function repRange(){const t=new Date();t.setHours(12,0,0,0);const k=REP.per;
   return [REP.d1||ymd(t),REP.d2||ymd(t)]}
 async function repLoad(){const el=$('#rep');if(!el||!isLoja()||REP.busy)return;REP.busy=true;
   const [d1,d2]=repRange();REP.cur=[d1,d2];if(!REP.data)el.innerHTML=repHead()+'<div class="rep-empty">Carregando relatório…</div>';
-  const{data,error}=await sb.rpc('sales_report',{d1,d2});REP.busy=false;
+  const[{data,error},ex]=await Promise.all([sb.rpc('sales_report',{d1,d2}),sb.rpc('sales_extra',{d1,d2})]);REP.busy=false;REP.extra=ex&&!ex.error?ex.data:null;
   if(error){el.innerHTML=repHead()+`<div class="rep-empty">Não foi possível carregar o relatório. ${esc(error.message||'')}</div>`;return}
   REP.data=data;repRender()}
 function repHead(){const P=[['hoje','Hoje'],['7','7 dias'],['30','30 dias'],['mes','Este mês'],['mesant','Mês passado'],['custom','Escolher datas']];
@@ -1407,7 +1408,9 @@ function repRender(){const el=$('#rep'),D=REP.data;if(!el||!D)return;const K=D.k
    <div class="kpi"><small>Taxas de entrega</small><b>${money(K.fees)}</b><span class="dl mut">incluídas no faturamento</span></div>
    <div class="kpi"><small>Cancelados</small><b>${K.canceled}</b><span class="dl ${K.canceled?'down':'mut'}">${K.canceled?money(K.canceled_value)+' perdidos':'nenhum'}</span></div>
   </div>`;
+  h=h.replace('<div class="kpis">',repGoal()+'<div class="kpis">');
   if(!K.orders){el.innerHTML=h+'<div class="rep-empty">Nenhuma venda neste período.</div>'+repCsvBtn();return}
+  h+=repOps();
   h+='<div class="rgrid">';
   if(!one)h+=`<div class="rcard"><h3>Vendas por dia</h3><div class="lead">Faturamento de cada dia. A barra destacada é o melhor dia.</div>${bars(D.by_day,r=>brD(r.d),r=>+r.revenue,{fmt:money,title:'Vendas por dia',maxLabels:7})}</div>`;
   const hrs=D.by_hour.filter(r=>r.orders>0),h0=hrs.length?Math.max(0,Math.min(...hrs.map(r=>r.h))-1):0,h1=hrs.length?Math.min(23,Math.max(...hrs.map(r=>r.h))+1):23;
@@ -1437,4 +1440,63 @@ document.addEventListener('click',e=>{const p=e.target.closest('[data-rper]');if
   if(b.dataset.act==='rpgo'){const a=$('#rp-d1').value,z=$('#rp-d2').value;if(!a||!z||z<a){toast('Escolha a data inicial e a final');return}REP.d1=a;REP.d2=z;repLoad()}else repCsv(b)});
 setInterval(()=>{if(ktab==='painel'&&isLoja()&&!document.hidden&&REP.per==='hoje')repLoad()},60000);
 setTimeout(()=>{if(ktab==='painel')repLoad()},1200);
+
+/* ---------- painel: meta, caixa, tempos e clientes ---------- */
+function repGoal(){const X=REP.extra;if(!X)return '';const M=X.month,g=+X.goal||0,rev=+M.revenue,proj=M.day?rev/M.day*M.days:0,left=Math.max(0,M.days-M.day);
+  const mes=new Date().toLocaleDateString('pt-BR',{month:'long'});
+  if(REP.editGoal||!g)return `<div class="rcard goal"><div class="goal-h"><h3>Meta de faturamento de ${mes}</h3></div>
+    <div class="mini">${g?'Altere a meta do mês.':'Defina quanto quer faturar no mês para acompanhar o progresso e a previsão.'} Até agora: <b>${money(rev)}</b> em ${M.orders} pedidos.</div>
+    <div class="rep-range"><div class="f"><label for="rp-goal">Meta do mês (R$)</label><input id="rp-goal" inputmode="decimal" placeholder="Ex.: 15.000" value="${g?String(g).replace('.',','):''}"></div><button class="btn sm" data-act="rpgoal">Salvar meta</button>${g?'<button class="btn sm ghost" data-act="rpgoalx">Cancelar</button>':''}</div></div>`;
+  const p=Math.min(100,rev/g*100),pp=Math.min(100,proj/g*100),ok=rev>=g,need=left?Math.max(0,g-rev)/left:0;
+  return `<div class="rcard goal"><div class="goal-h"><h3>Meta de ${mes}: ${money(g)}</h3><button class="linkbtn" data-act="rpgoaledit">Alterar</button></div>
+   <div class="goal-bar" role="img" aria-label="${Math.round(rev/g*100)}% da meta"><i style="width:${p.toFixed(1)}%"></i><span style="left:${pp.toFixed(1)}%" title="Previsão"></span></div>
+   <div class="goal-n"><div><b>${money(rev)}</b><small>faturado (${Math.round(rev/g*100)}%)</small></div><div><b>${money(proj)}</b><small>previsão para o mês</small></div><div><b>${ok?'Meta batida!':money(Math.max(0,g-rev))}</b><small>${ok?'parabéns':'faltam'}</small></div></div>
+   <div class="mini">${ok?'Você já passou da meta deste mês.':left?`Para bater a meta, venda em média <b>${money(need)}</b> por dia nos ${left} dias que faltam.`:'Último dia do mês.'} A linha fina na barra é a previsão, pelo ritmo de vendas até hoje.</div></div>`}
+function repOps(){const X=REP.extra,D=REP.data;if(!X)return '';const C=X.cash,T=X.times,L=X.clients,K=D.kpi;
+  const dr=D.drivers||[],rep=dr.reduce((a,r)=>a+(+r.fees),0),tm=v=>v==null?'—':v<60?v+' min':Math.floor(v/60)+'h'+String(v%60).padStart(2,'0');
+  return `<div class="rgrid">
+   <div class="rcard"><div class="goal-h"><h3>Fechamento de caixa</h3><button class="btn sm ghost" data-act="rpprint">${I('printer')} Imprimir</button></div>
+    <div class="cash">
+     <div><span>${I('pix')} Pix recebido</span><b>${money(C.pix_ok)}</b></div>
+     <div class="${C.pix_pending_n?'warn':''}"><span>${I('pix')} Pix a confirmar (${C.pix_pending_n})</span><b>${money(C.pix_pending)}</b></div>
+     <div><span>${I('cash')} Dinheiro</span><b>${money(C.dinheiro)}</b></div>
+     <div><span>${I('card')} Cartão</span><b>${money(C.cartao)}</b></div>
+     <div class="tot"><span>Total vendido</span><b>${money(K.revenue)}</b></div>
+     ${C.open_n?`<div class="mut"><span>Ainda em andamento (${C.open_n})</span><b>${money(C.open)}</b></div>`:''}
+     ${rep?`<div class="mut"><span>${I('moto')} Taxas de entrega dos motoboys</span><b>${money(rep)}</b></div>`:''}
+    </div>${C.pix_pending_n?'<div class="mini">Confira no banco os Pix a confirmar e marque "Confirmar Pix recebido" em cada pedido.</div>':''}</div>
+   <div class="rcard"><h3>Tempo médio</h3><div class="times">
+     <div><b>${tm(T.prep)}</b><small>do pedido até ficar pronto</small></div>
+     <div><b>${tm(T.route)}</b><small>na rua com o motoboy</small></div>
+     <div><b>${tm(T.total)}</b><small>do pedido até a entrega</small></div></div>
+    <div class="mini">Calculado pelos horários em que cada pedido mudou de etapa${T.n?' ('+T.n+' pedidos)':''}.</div>
+    <h3 style="margin-top:4px">Clientes</h3><div class="times">
+     <div><b>${L.new}</b><small>novos (1º pedido)</small></div><div><b>${L.returning}</b><small>voltaram a pedir</small></div><div><b>${L.counter}</b><small>pedidos de balcão</small></div></div></div>
+  </div>`}
+function repPrint(){const D=REP.data,X=REP.extra;if(!D)return;const [d1,d2]=REP.cur,K=D.kpi,C=X?X.cash:null;
+  const L=[{t:($('.brandmark b')||{}).textContent||'',c:1,b:1},{t:'FECHAMENTO DE CAIXA',c:1,b:1,big:1},{t:d1===d2?brDY(d1):brDY(d1)+' a '+brDY(d2),c:1},{hr:1},
+    {two:['Pedidos',String(K.orders)]},{two:['Itens vendidos',String(K.items)]},{two:['Ticket medio',money(K.avg)]},{hr:1}];
+  if(C){L.push({two:['Pix recebido',money(C.pix_ok)]},{two:['Pix a confirmar ('+C.pix_pending_n+')',money(C.pix_pending)]},{two:['Dinheiro',money(C.dinheiro)]},{two:['Cartao',money(C.cartao)]})}
+  L.push({hr:1},{two:['TOTAL VENDIDO',money(K.revenue)],b:1,big2:1},{two:['Taxas de entrega',money(K.fees)]},{two:['Cancelados ('+K.canceled+')',money(K.canceled_value)]});
+  if((D.drivers||[]).length){L.push({hr:1},{t:'MOTOBOYS',b:1});D.drivers.forEach(r=>L.push({two:[r.name+' ('+r.deliveries+')',money(r.fees)]}))}
+  if((D.products||[]).length){L.push({hr:1},{t:'MAIS VENDIDOS',b:1});D.products.slice(0,8).forEach(r=>L.push({two:[r.qty+'x '+r.name,money(r.revenue)]}))}
+  L.push({hr:1},{t:'Impresso em '+new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),c:1});
+  printLines(L)}
+function printLines(L){if(BT.ch){const C=LS.get('lb_paper','80')==='58'?32:48,out=[],E=(...b)=>out.push(...b),T=t=>{for(const ch of ascii(t))out.push(ch.charCodeAt(0))};
+    E(27,64);L.forEach(l=>{if(l.hr){T('-'.repeat(C));E(10);return}E(27,97,l.c?1:0);E(27,69,l.b?1:0);E(29,33,l.big?17:l.big2?1:0);
+      if(l.two){let a=ascii(l.two[0]),b=ascii(l.two[1]);const w=l.big?C/2:C;if(a.length+b.length+1>w)a=a.slice(0,Math.max(1,w-b.length-1));T(a+' '.repeat(Math.max(1,w-a.length-b.length))+b)}else T(l.t);E(10)});
+    E(27,69,0);E(29,33,0);E(27,97,0);E(10,10,10,10);E(29,86,66,0);
+    btWrite(new Uint8Array(out)).then(()=>toast('Fechamento enviado para a impressora')).catch(()=>{toast('Falha na impressora Bluetooth');sysLines(L)});return}
+  sysLines(L)}
+function sysLines(L){const html=L.map(l=>l.hr?'<hr>':l.two?`<div class="row${l.b?' tot':''}"><span>${esc(l.two[0])}</span><span>${esc(l.two[1])}</span></div>`:`<div class="${l.c?'c ':''}${l.big?'big':l.b?'md':''}">${esc(l.t)}</div>`).join('');
+  const fake={code:'',createdAt:Date.now(),mode:'retirada',customer:{name:''},addr:{},items:[],subtotal:0,fee:0,total:0,pay:{method:'pix'},history:[]};
+  sysPrint(fake);const a=$('#printArea');if(a)a.innerHTML=html}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-act=rpgoal],[data-act=rpgoalx],[data-act=rpgoaledit],[data-act=rpprint]');if(!b)return;const a=b.dataset.act;
+  if(a==='rpgoaledit'){REP.editGoal=true;repRender();const i=$('#rp-goal');if(i)i.focus();return}
+  if(a==='rpgoalx'){REP.editGoal=false;repRender();return}
+  if(a==='rpprint'){repPrint();return}
+  const raw=($('#rp-goal').value||'').replace(/[^\d,\.]/g,'').replace(/\./g,'').replace(',','.'),v=Math.round(parseFloat(raw)*100)/100;
+  if(!(v>0)){toast('Digite a meta em reais, por exemplo 15.000');return}
+  b.disabled=true;const{error}=await sb.rpc('set_revenue_goal',{v});b.disabled=false;if(error){dbFail(error);return}
+  REP.editGoal=false;if(REP.extra)REP.extra.goal=v;toast('Meta do mês: '+money(v));repRender()});
 })();
